@@ -17,10 +17,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.codec.binary.Base64;
 
-import org.apache.commons.codec.binary.Hex;
-import org.apache.http.client.utils.HttpClientUtils;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 /*
@@ -129,33 +126,22 @@ public class CoinRoster
 		//Convert param to uppercase and set the exchange of this CoinRoster
 		_exch = exchange.toUpperCase();
 		
-		switch (_exch)
-		{
-			case "CRYPTSY":
-				processCryptsy();
-				break;
-			case "COINEX":
-				processCoinex();
-				break;
-			case "COINEDUP":
-				//processCoinedup();
-				break;
-			case "BTER":
-				processBter();
-				break;
-			case "BTC-E":
-				//processBtc_e();
-				break;
-			case "OKCOIN":
-				//processOKCoin();
-				break;
-			case "BITFINEX":
-				//processBitfinex();
-				break;
-			case "KRAKEN":
-				//processKraken();
-				break;
-		}		
+		if (_exch.contentEquals("CRYPTSY"))
+			processCryptsy();
+		else if (_exch.contentEquals("COINEX"))
+			processCoinex();
+		else if (_exch.contentEquals("COINEDUP"))
+			processCoinedup();
+		else if (_exch.contentEquals("BTER"))
+			processBter();
+//		else if (_exch.contentEquals("BTC-E"))
+//			processBtc_e();
+//		else if (_exch.contentEquals("OKCOIN"))
+//			processOKCoin();
+//		else if (_exch.contentEquals("BITFINEX"))
+//			processBitfinex();
+//		else if (_exch.contentEquals("KRAKEN"))
+//			processKraken();		
 	}
 	
 	private void processCryptsy()

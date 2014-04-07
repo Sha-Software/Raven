@@ -1,0 +1,35 @@
+# RAVEN EXCHANGES SELECTION
+# DO NOT add exchanges that are not added by default. Each exchange
+# releases unique JSON that must be coded per exchange. If you add
+# a new one, the program won't know how to handle it, and will fail.
+#
+# This file lists each exchange that Raven can connect to and parse from.
+# Each listed exchange has the option if you want its info or not.
+# The settings menu in Raven modifies this file with a nice checklist,
+# but you can still modify it by doing exactly what you're doing right now.
+#
+# The format is <exchange, parseboolean>
+#
+# exchange = The exchange to parse
+# parseboolean = Set to 'T' if you wants this exchange's info; F otherwise.
+#
+# Use the # symbol if you want to write a comment in this file.
+cryptsy,T
+coinex,T
+bter,T
+btc-e,F
+okcoin,F
+bitfinex,F
+fxbtc,F
+kraken,F
+mcxnow,F
+poloniex,F
+justcoin,F
+vircurex,F
+the rock trading,F
+crypto-trade,F
+coinedup,F
+bittrex,F
+atomic trade,F
+coins-e,F
+cryptonit,F
