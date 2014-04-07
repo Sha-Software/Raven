@@ -422,7 +422,7 @@ public class CoinRoster
 	}
 	
 	/**
-	 * Returns a String containing JSON from Cryptsy's public API
+	 * Returns a String containing JSON from exchanges' API
 	 * @return
 	 */
 	public String GetAllMarketInfo(String url) //------------------------------------------
