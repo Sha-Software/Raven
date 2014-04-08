@@ -3,6 +3,7 @@ package sha.suite.raven;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -59,7 +60,7 @@ public class CoinRoster
 	final String FXBTC_URL = "";
 	
 	final String KRAKEN_URL_ASSET_PAIRS = "https://api.kraken.com/0/public/AssetPairs";
-	final String KRAKEN_URL_TICKER = "https://api.kraken.com/0/public/Ticker";
+	final String KRAKEN_URL_TRADES = "https://api.kraken.com/0/public/Trades";
 	final String MCXNOW_URL = "";
 	final String POLONIEX_URL = "";
 	
@@ -73,6 +74,8 @@ public class CoinRoster
 	
 	final String COINS_E_URL = "";
 	final String CRYPTONIT = "";
+	
+	final String PROCESSING = "Processing individual coin info";
 	
 	/**
 	 * <p>Holds each coin returned in JSON from the exchanges</p>
@@ -140,8 +143,8 @@ public class CoinRoster
 //			processOKCoin();
 //		else if (_exch.contentEquals("BITFINEX"))
 //			processBitfinex();
-//		else if (_exch.contentEquals("KRAKEN"))
-//			processKraken();		
+		else if (_exch.contentEquals("KRAKEN"))
+			processKraken();		
 	}
 	
 	private void processCryptsy()
@@ -158,7 +161,7 @@ public class CoinRoster
 	
 		JSONArray ja = j.toJSONArray(j.names());
 		
-		RavenGUI.log("Processing individual coin info");
+		RavenGUI.log(this._exch + ": " + PROCESSING);
 		for (int i = 0; i < ja.length(); i++)
 		{
 			j = ja.getJSONObject(i);
@@ -196,7 +199,7 @@ public class CoinRoster
 				JSONArray ja = j.toJSONArray(j.names());
 				ja = j.getJSONArray("trade_pairs");
 				
-				RavenGUI.log("Processing individual coin info");
+				RavenGUI.log(this._exch + ": " + PROCESSING);
 				for (int i = 0; i < ja.length(); i++)
 				{
 					tempC = new Coin();
@@ -261,7 +264,7 @@ public class CoinRoster
 				
 				JSONArray ja = j.toJSONArray(j.names());
 				
-				RavenGUI.log("Processing individual coin info");
+				RavenGUI.log(this._exch + ": " + PROCESSING);
 				for (int i = 0; i < ja.length(); i++)
 				{
 					tempC = new Coin();
@@ -303,6 +306,7 @@ public class CoinRoster
 		{
 			if (JSON.length() > 0)
 			{
+				RavenGUI.log(this._exch + ": " + PROCESSING);
 				Coin tempC = new Coin();
 				JSONObject j = new JSONObject(JSON);
 				
@@ -339,20 +343,38 @@ public class CoinRoster
 	{
 		RavenGUI.log("Collecting Kraken's market info");
 		
-		String pairnames = GetAllMarketInfo(KRAKEN_URL_ASSET_PAIRS);
-		String JSON = GetAllMarketInfo(KRAKEN_URL_TICKER);
+		String JSON = GetAllMarketInfo(KRAKEN_URL_TRADES);
 		try
 		{
 			if (JSON.length() > 0)
 			{
-				Coin tempC = new Coin();
+				RavenGUI.log(this._exch + ": " + PROCESSING);
 				
-				JSONObject temp = new JSONObject(pairnames).getJSONObject("result");
-				JSONArray assetPairs = temp.names();
 				
 				JSONObject j = new JSONObject(JSON);
-				j = j.getJSONObject("");
 				JSONArray ja = j.toJSONArray(j.names());
+				
+				for (int i = 0; i < ja.length(); i++)
+				{
+					Coin tempC = new Coin();
+					
+					//JSONObject temp = (JSONObject)ja.get(i);
+					JSONArray tempa = (JSONArray)ja.get(i);
+					tempa = (JSONArray)tempa.get(0);
+					
+					System.out.println(tempa.toString());
+					String code = j.names().get(i).toString();
+					
+					tempC.setExch(this._exch);
+					
+					tempC.setPriCode(code.substring(1, code.indexOf("X", 1)));
+					tempC.setSecCode(code.substring(code.indexOf("X", 1), code.indexOf("X", tempC.getPriCode().length()+1)));
+					tempC.setVolume(Double.parseDouble(tempa.get(1).toString()));
+					tempC.setBuy(Double.parseDouble(tempa.get(0).toString()));
+					tempC.setSell(tempC.getBuy());
+					tempC.setLastTrade(tempC.getBuy());
+					
+				}
 				
 			}
 			else
@@ -449,164 +471,217 @@ public class CoinRoster
 		try
 		{
 			charset = null;
-			int attempts = 0;
-			while (charset == null && attempts < 2)
+			if (url.contains("cryptsy")) //----------------------------------------------------------------------
 			{
-				if (url.contains("cryptsy")) //----------------------------------------------------------------------
+				in = new BufferedReader(new InputStreamReader(apiResponse.openStream()));
+				
+				while ((temp = in.readLine()) != null)
 				{
-					in = new BufferedReader(new InputStreamReader(apiResponse.openStream()));
-					
-					while ((temp = in.readLine()) != null)
-					{
-						JSON += temp;
-					}
-					if (JSON.length() > 0){charset = "notnull";}
+					JSON += temp;
 				}
-				else if (url.contains("btce"))
-				{
-					 Map<String, String> args = new HashMap<String, String>();
-					 SecretKeySpec key = null;
-					 Mac mac;
+			}
+			else if (url.contains("btce"))
+			{
+				 Map<String, String> args = new HashMap<String, String>();
+				 SecretKeySpec key = null;
+				 Mac mac;
+				 
+				 args.put("method","TradeHistory");
+				 args.put("nonce", Long.toString(System.nanoTime()));
+				 
+				 String postdata = "";
+				 
+				 for (Iterator argIt = args.entrySet().iterator(); argIt.hasNext();)
+				 {
+					 Map.Entry argument = (Map.Entry)argIt.next();
 					 
-					 args.put("method","TradeHistory");
-					 args.put("nonce", Long.toString(System.nanoTime()));
-					 
-					 String postdata = "";
-					 
-					 for (Iterator argIt = args.entrySet().iterator(); argIt.hasNext();)
+					 if (postdata.length() > 0)
 					 {
-						 Map.Entry argument = (Map.Entry)argIt.next();
-						 
-						 if (postdata.length() > 0)
-						 {
-							 postdata += "&";
-						 }
-						 
-						 postdata += argument.getKey() + "=" + argument.getValue();
+						 postdata += "&";
 					 }
 					 
-					 // Create a new secret key
-				        try
-				        {
-				            key = new SecretKeySpec(postdata.getBytes("UTF-8"), "HmacSHA512");
-				        }
-				        catch( UnsupportedEncodingException uee)
-				        {
-				            System.err.println( "Unsupported encoding exception: " + uee.toString());
-				            return null;
-				        }
+					 postdata += argument.getKey() + "=" + argument.getValue();
+				 }
 				 
-				        // Create a new mac
-				        try
-				        {
-				            mac = Mac.getInstance("HmacSHA512");
-				        }
-				        catch( NoSuchAlgorithmException nsae)
-				        {
-				            System.err.println( "No such algorithm exception: " + nsae.toString());
-				            return null;
-				        }
+				 // Create a new secret key
+			        try
+			        {
+			            key = new SecretKeySpec(postdata.getBytes("UTF-8"), "HmacSHA512");
+			        }
+			        catch( UnsupportedEncodingException uee)
+			        {
+			            System.err.println( "Unsupported encoding exception: " + uee.toString());
+			            return null;
+			        }
+			 
+			        // Create a new mac
+			        try
+			        {
+			            mac = Mac.getInstance("HmacSHA512");
+			        }
+			        catch( NoSuchAlgorithmException nsae)
+			        {
+			            System.err.println( "No such algorithm exception: " + nsae.toString());
+			            return null;
+			        }
+			 
+			        // Init mac with key.
+			        try
+			        {
+			            mac.init(key);
+			        }
+			        catch( InvalidKeyException ike)
+			        {
+			            System.err.println( "Invalid key exception: " + ike.toString());
+			            return null;
+			        }
+			 
+			        // Add the key to the header lines.
+			        //headerLines.put( "Key", key);
+			 
+			        // Encode the post data by the secret and encode the result as base64.
+			        /*try
+			        {
+			            headerLines.put( "Sign", Hex.encodeHexString( mac.doFinal( postData.getBytes( "UTF-8"))));
+			        }
+			        catch( UnsupportedEncodingException uee)
+			        {
+			            System.err.println( "Unsupported encoding exception: " + uee.toString());
+			            return null;
+			        } */
 				 
-				        // Init mac with key.
-				        try
-				        {
-				            mac.init(key);
-				        }
-				        catch( InvalidKeyException ike)
-				        {
-				            System.err.println( "Invalid key exception: " + ike.toString());
-				            return null;
-				        }
-				 
-				        // Add the key to the header lines.
-				        //headerLines.put( "Key", key);
-				 
-				        // Encode the post data by the secret and encode the result as base64.
-				        /*try
-				        {
-				            headerLines.put( "Sign", Hex.encodeHexString( mac.doFinal( postData.getBytes( "UTF-8"))));
-				        }
-				        catch( UnsupportedEncodingException uee)
-				        {
-				            System.err.println( "Unsupported encoding exception: " + uee.toString());
-				            return null;
-				        } */
-					 
-				}
-				else if (url.contains("api.kraken.com/0/public/Ticker"))
+			}
+			else if (url.contains("api.kraken.com/0/public/Trades"))
+			{
+				String tempJ = null;
+				//Get asset pairs from kraken
+				if ((tempJ = GetAllMarketInfo(KRAKEN_URL_ASSET_PAIRS)).length() > 0)
 				{
 					URLConnection conn = null;
-					conn = apiResponse.openConnection();
-					conn.setDoOutput(true);
+					OutputStreamWriter out = null;
 					
-					conn.setRequestProperty("pair", "");
+					//Collect coin codes
+					JSONObject j = new JSONObject(tempJ).getJSONObject("result");
+					JSONArray jn = j.names();
+					JSONArray ja = j.toJSONArray(jn);
+					
+					for (int code = 0; code < jn.length(); code++)
+					{
+						conn = apiResponse.openConnection();
+						conn.setDoOutput(true);
+						
+						conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
+						conn.setRequestProperty("Accept-Charset", "utf-8");
+						
+						//Set which coin we want to query
+						String coincode = jn.getString(code);
+						
+						//Open the webpage connection
+						out = new OutputStreamWriter(conn.getOutputStream());
+						out.write("pair=" + coincode);
+						out.close();
+						
+						//Collect the coin info and append it to the JSON String
+						BufferedReader pairIn = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+						
+						String pairtemp = null;
+						while ((pairtemp = pairIn.readLine()) != null)
+						{
+							JSONObject jt = new JSONObject(pairtemp);
+							
+							if (jt.getJSONArray("error").length() < 1)
+							{
+								jt = jt.getJSONObject("result");
+								JSON += jt.toString() + ",";
+							}
+							else
+								code = jn.length();
+						}
+						
+						
+					}
+					
+					
 				}
-				else if (url.contains("bitfinex"))
+			}
+			else if (url.contains("api.kraken.com/0/public/AssetPairs"))
+			{
+				URLConnection conn = apiResponse.openConnection();
+				conn.setDoOutput(true);
+				
+				conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
+				conn.setRequestProperty("Accept-Charset", "utf-8");
+				
+				BufferedReader assetIn = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+				
+				if (assetIn != null)
 				{
-					//   https://api.bitfinex.com/v1
-					//   /book/:symbol - get full orderbook
-					
-					URLConnection conn = null;
-					conn = apiResponse.openConnection();
-					conn.setDoOutput(true);
-										
-					//Build a string of the JSON required to make the request and encode it
-					//into base64
-					byte [] encoded = Base64.encodeBase64(new String("{request:" + "stuff " +
-							"nonce:" + System.currentTimeMillis() +
-							"options:{}}").getBytes());
-					
-					String payload = null;
-					for (byte b : encoded) { payload += Byte.toString(b); }
-					
-					conn.setRequestProperty("X-BFX-APIKEY", /*authenticating API key goes here*/"");
-					conn.setRequestProperty("X-BFX-PAYLOAD", payload);
-					conn.setRequestProperty("X-BFX-SIGNATURE", "");
+					String inTemp = null;
+					while ((inTemp = assetIn.readLine()) != null)
+						JSON += inTemp;
+					assetIn.close();
 				}
-				else //-----------------------------------------------------------------------------------------------
-				{
-					URLConnection conn = null;
-					
-					//Open connection to web page
-					conn = apiResponse.openConnection();
-					
-					conn.setDoOutput(true); //Triggers post
-					
-					//Set HTTP request headers to fool coinex/bter into thinking we're Firefox (they reject our request otherwise)
+			}
+			else if (url.contains("bitfinex"))
+			{
+				//   https://api.bitfinex.com/v1
+				//   /book/:symbol - get full orderbook
+				
+				URLConnection conn = null;
+				conn = apiResponse.openConnection();
+				conn.setDoOutput(true);
+									
+				//Build a string of the JSON required to make the request and encode it
+				//into base64
+				byte [] encoded = Base64.encodeBase64(new String("{request:" + "stuff " +
+						"nonce:" + System.currentTimeMillis() +
+						"options:{}}").getBytes());
+				
+				String payload = null;
+				for (byte b : encoded) { payload += Byte.toString(b); }
+				
+				conn.setRequestProperty("X-BFX-APIKEY", /*authenticating API key goes here*/"");
+				conn.setRequestProperty("X-BFX-PAYLOAD", payload);
+				conn.setRequestProperty("X-BFX-SIGNATURE", "");
+			}
+			else //-----------------------------------------------------------------------------------------------
+			{
+				URLConnection conn = null;
+				
+				//Open connection to web page
+				conn = apiResponse.openConnection();
+				
+				conn.setDoOutput(true); //Triggers post
+				
+				//Set HTTP request headers to fool coinex/bter into thinking we're Firefox (they reject our request otherwise)
 
-					conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
-					conn.setRequestProperty("Accept-Charset", "utf-8");
-					//conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded;charset=");
-					
-					
-					//Collect the type of HTML content so we can decode it
-					contentType = conn.getHeaderField("Content-Type");
-					//
-					for (String param : contentType.replace(" ", "").split(";"))
+				conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
+				conn.setRequestProperty("Accept-Charset", "utf-8");
+				//conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded;charset=");
+				
+				
+				//Collect the type of HTML content so we can decode it
+				contentType = conn.getHeaderField("Content-Type");
+				//
+				for (String param : contentType.replace(" ", "").split(";"))
+				{
+				    if (param.startsWith("charset=")) 
+				    {
+				        charset = param.split("=", 2)[1];
+				        break;
+				    }
+				}
+				
+				//if (charset != null)
+				{
+					in = new BufferedReader(new InputStreamReader(conn.getInputStream()/*, charset*/));
+					for (String line; (line = in.readLine()) != null;)
 					{
-					    if (param.startsWith("charset=")) 
-					    {
-					        charset = param.split("=", 2)[1];
-					        break;
-					    }
+						JSON += line;
 					}
-					
-					//if (charset != null)
-					{
-						in = new BufferedReader(new InputStreamReader(conn.getInputStream()/*, charset*/));
-						for (String line; (line = in.readLine()) != null;)
-						{
-							JSON += line;
-						}
-						if (JSON.length() > 0)
-						{
-							charset = "notnull";
-						}
-					}
-					
-				} //end of else
-				attempts++;
-			} //end of (charset == null && attempts < 5)
+				}
+				
+			} //end of else
 		}
 		catch (UnsupportedEncodingException e){e.printStackTrace();}
 		catch (IllegalStateException e){e.printStackTrace();}
