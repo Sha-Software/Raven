@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.ConnectException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -129,25 +130,34 @@ public class CoinRoster
 		//Convert param to uppercase and set the exchange of this CoinRoster
 		_exch = exchange.toUpperCase();
 		
-		if (_exch.contentEquals("CRYPTSY"))
-			processCryptsy();
-		else if (_exch.contentEquals("COINEX"))
-			processCoinex();
-		else if (_exch.contentEquals("COINEDUP"))
-			processCoinedup();
-		else if (_exch.contentEquals("BTER"))
-			processBter();
-//		else if (_exch.contentEquals("BTC-E"))
-//			processBtc_e();
-//		else if (_exch.contentEquals("OKCOIN"))
-//			processOKCoin();
-//		else if (_exch.contentEquals("BITFINEX"))
-//			processBitfinex();
-		else if (_exch.contentEquals("KRAKEN"))
-			processKraken();		
+		try
+		{
+			if (_exch.contentEquals("CRYPTSY"))
+				processCryptsy();
+			else if (_exch.contentEquals("COINEX"))
+				processCoinex();
+			else if (_exch.contentEquals("COINEDUP"))
+				processCoinedup();
+			else if (_exch.contentEquals("BTER"))
+				processBter();
+//			else if (_exch.contentEquals("BTC-E"))
+//				processBtc_e();
+//			else if (_exch.contentEquals("OKCOIN"))
+//				processOKCoin();
+//			else if (_exch.contentEquals("BITFINEX"))
+//				processBitfinex();
+			else if (_exch.contentEquals("KRAKEN"))
+				processKraken();		
+		}
+		catch (UnsupportedEncodingException uee){uee.printStackTrace();}
+		catch (IllegalStateException ise){ise.printStackTrace();}
+		catch (NullPointerException npe){npe.printStackTrace();}
+		catch (ConnectException ce) {RavenGUI.log("--UPDATE: " + ce.getMessage());}
+		catch (Exception e){e.printStackTrace();}
+		
 	}
 	
-	private void processCryptsy()
+	private void processCryptsy() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{		
 		//Connect to crypsty and download JSON string
 		RavenGUI.log("Collecting Cryptsy's market information");
@@ -241,7 +251,7 @@ public class CoinRoster
 		}
 	}
 	
-	private void processCoinedup()
+	private void processCoinedup() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
 		RavenGUI.log("Collecting Coinedup's market info");
 		String JSON = GetAllMarketInfo(COINEDUP_URL);
@@ -250,7 +260,7 @@ public class CoinRoster
 		//j = j.getJSONObject("trade_pairs");
 	}
 	
-	private void processBter()
+	private void processBter() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
 		RavenGUI.log("Collecting Bter's market info");
 		String JSON_tickers = GetAllMarketInfo(BTER_TICKERS_URL);
@@ -297,7 +307,7 @@ public class CoinRoster
 		}
 	}
 	
-	private void processBtc_e()
+	private void processBtc_e() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
 		RavenGUI.log("Collecting BTC-E's market info");
 		
@@ -339,7 +349,7 @@ public class CoinRoster
 		
 	}
 	
-	private void processKraken()
+	private void processKraken() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
 		RavenGUI.log("Collecting Kraken's market info");
 		
@@ -351,31 +361,35 @@ public class CoinRoster
 				RavenGUI.log(this._exch + ": " + PROCESSING);
 				
 				
-				JSONObject j = new JSONObject(JSON);
-				JSONArray ja = j.toJSONArray(j.names());
+				//JSONObject j = new JSONObject(JSON);
+				JSONArray ja = new JSONArray(JSON);
+				//JSONArray ja = j.toJSONArray(j.names());
 				
 				for (int i = 0; i < ja.length(); i++)
 				{
 					Coin tempC = new Coin();
 					
 					//JSONObject temp = (JSONObject)ja.get(i);
-					JSONArray tempa = (JSONArray)ja.get(i);
-					tempa = (JSONArray)tempa.get(0);
 					
-					System.out.println(tempa.toString());
-					String code = j.names().get(i).toString();
+					JSONObject temp = (JSONObject)ja.get(i);
+					JSONArray tempa = (JSONArray)temp.get(temp.names().get(0).toString());
+				
+					String code = temp.names().get(0).toString();
 					
 					tempC.setExch(this._exch);
 					
-					tempC.setPriCode(code.substring(1, code.indexOf("X", 1)));
-					tempC.setSecCode(code.substring(code.indexOf("X", 1), code.indexOf("X", tempC.getPriCode().length()+1)));
+					//tempC.setPriCode(code.substring(1, code.indexOf("X", 1)));
+					//tempC.setSecCode(code.substring(code.indexOf("X", 1), code.indexOf("X", tempC.getPriCode().length()+1)));
+					tempC.setPriCode(code.substring(1, 4));
+					tempC.setSecCode(code.substring(5));
 					tempC.setVolume(Double.parseDouble(tempa.get(1).toString()));
 					tempC.setBuy(Double.parseDouble(tempa.get(0).toString()));
 					tempC.setSell(tempC.getBuy());
 					tempC.setLastTrade(tempC.getBuy());
 					
+					addCoin(tempC);
 				}
-				
+				_validProcessing = true;
 			}
 			else
 			{
@@ -447,7 +461,9 @@ public class CoinRoster
 	 * Returns a String containing JSON from exchanges' API
 	 * @return
 	 */
-	public String GetAllMarketInfo(String url) //------------------------------------------
+	
+	
+	public String GetAllMarketInfo(String url) throws UnsupportedEncodingException, IllegalStateException, NullPointerException, ConnectException//------------------------------------------
 	{
 		URL apiResponse = null;
 		BufferedReader in = null;
@@ -503,52 +519,52 @@ public class CoinRoster
 					 postdata += argument.getKey() + "=" + argument.getValue();
 				 }
 				 
-				 // Create a new secret key
-			        try
-			        {
-			            key = new SecretKeySpec(postdata.getBytes("UTF-8"), "HmacSHA512");
-			        }
-			        catch( UnsupportedEncodingException uee)
-			        {
-			            System.err.println( "Unsupported encoding exception: " + uee.toString());
-			            return null;
-			        }
+			 // Create a new secret key
+		        try
+		        {
+		            key = new SecretKeySpec(postdata.getBytes("UTF-8"), "HmacSHA512");
+		        }
+		        catch( UnsupportedEncodingException uee)
+		        {
+		            System.err.println( "Unsupported encoding exception: " + uee.toString());
+		            return null;
+		        }
+		 
+		        // Create a new mac
+		        try
+		        {
+		            mac = Mac.getInstance("HmacSHA512");
+		        }
+		        catch( NoSuchAlgorithmException nsae)
+		        {
+		            System.err.println( "No such algorithm exception: " + nsae.toString());
+		            return null;
+		        }
+		 
+		        // Init mac with key.
+		        try
+		        {
+		            mac.init(key);
+		        }
+		        catch( InvalidKeyException ike)
+		        {
+		            System.err.println( "Invalid key exception: " + ike.toString());
+		            return null;
+		        }
 			 
-			        // Create a new mac
-			        try
-			        {
-			            mac = Mac.getInstance("HmacSHA512");
-			        }
-			        catch( NoSuchAlgorithmException nsae)
-			        {
-			            System.err.println( "No such algorithm exception: " + nsae.toString());
-			            return null;
-			        }
-			 
-			        // Init mac with key.
-			        try
-			        {
-			            mac.init(key);
-			        }
-			        catch( InvalidKeyException ike)
-			        {
-			            System.err.println( "Invalid key exception: " + ike.toString());
-			            return null;
-			        }
-			 
-			        // Add the key to the header lines.
-			        //headerLines.put( "Key", key);
-			 
-			        // Encode the post data by the secret and encode the result as base64.
-			        /*try
-			        {
-			            headerLines.put( "Sign", Hex.encodeHexString( mac.doFinal( postData.getBytes( "UTF-8"))));
-			        }
-			        catch( UnsupportedEncodingException uee)
-			        {
-			            System.err.println( "Unsupported encoding exception: " + uee.toString());
-			            return null;
-			        } */
+		        // Add the key to the header lines.
+		        //headerLines.put( "Key", key);
+		 
+		        // Encode the post data by the secret and encode the result as base64.
+		        /*try
+		        {
+		            headerLines.put( "Sign", Hex.encodeHexString( mac.doFinal( postData.getBytes( "UTF-8"))));
+		        }
+		        catch( UnsupportedEncodingException uee)
+		        {
+		            System.err.println( "Unsupported encoding exception: " + uee.toString());
+		            return null;
+		        } */
 				 
 			}
 			else if (url.contains("api.kraken.com/0/public/Trades"))
@@ -564,6 +580,8 @@ public class CoinRoster
 					JSONObject j = new JSONObject(tempJ).getJSONObject("result");
 					JSONArray jn = j.names();
 					JSONArray ja = j.toJSONArray(jn);
+					
+					JSON = "[";
 					
 					for (int code = 0; code < jn.length(); code++)
 					{
@@ -592,16 +610,20 @@ public class CoinRoster
 							if (jt.getJSONArray("error").length() < 1)
 							{
 								jt = jt.getJSONObject("result");
-								JSON += jt.toString() + ",";
+								if (code > 1)
+								{
+									JSONArray jat = jt.getJSONArray(coincode);
+									JSON += "{\"" + coincode + "\":" + jat.get(0).toString() + "},";
+								}
+								else
+									JSON += "{\"" + coincode + "\":" + jt.getJSONArray(coincode).get(0).toString() + "},";
 							}
 							else
 								code = jn.length();
 						}
-						
-						
 					}
-					
-					
+					JSON = JSON.substring(0, JSON.length() - 2); //remove ending comma
+					JSON += "}]"; //close JSON syntax
 				}
 			}
 			else if (url.contains("api.kraken.com/0/public/AssetPairs"))
@@ -683,21 +705,19 @@ public class CoinRoster
 				
 			} //end of else
 		}
-		catch (UnsupportedEncodingException e){e.printStackTrace();}
-		catch (IllegalStateException e){e.printStackTrace();}
-		catch (NullPointerException e){e.printStackTrace();}
-		catch (IOException e)
+		
+		catch (IOException ioe)
 		{
-			if (e.getMessage().contains("403 for URL"))
+			if (ioe.getMessage().contains("403 for URL"))
 			{
 				RavenGUI.log("UPDATE: 403 error");
 			}
 			else
 			{
-				e.printStackTrace();
+				ioe.printStackTrace();
 			}
 		}
-		catch (Exception e){e.printStackTrace();}
+		
 		finally 
 		{
 			try

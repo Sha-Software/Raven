@@ -352,44 +352,7 @@ class RavenGUI
 		display = new Display();
 		shell = new Shell(display, SWT.SHELL_TRIM & ~SWT.RESIZE & ~SWT.MAX); //prevent resizing of window
 		
-		//Menu bar -------------------------------------------------------------------------
-		menu = new Menu(shell, SWT.BAR);
-		shell.setMenuBar(menu);
 		
-		//Create menu bar buttons/lists
-		//Extra controls--------------------------------------------------------------------
-		controlsItem = new MenuItem(menu, SWT.CASCADE);
-		controlsItem.setText("Extra &Controls"); //Contains extra controls that don't have room for a button on the form
-		controlsSubmenu = new Menu(shell, SWT.DROP_DOWN);
-		controlsItem.setMenu(controlsSubmenu);
-		
-		//Create option to open the settings window
-		settingsItem = new MenuItem(controlsSubmenu, SWT.PUSH);
-		settingsItem.setText("Settings");
-		settingsItem.addListener(SWT.Selection, settings_listener);
-		
-		//Create option to generate a full CSV report
-		fullCSVreportItem = new MenuItem(controlsSubmenu, SWT.PUSH);
-		fullCSVreportItem.setText("Generate CSV report");
-		fullCSVreportItem.addListener(SWT.Selection, generate_full_csv_report);
-		//----------------------------------------------------------------------------------
-		//Defaults
-		defaultsItem = new MenuItem(menu, SWT.CASCADE);
-		defaultsItem.setText("&Defaults");
-		defaultsSubmenu = new Menu(shell, SWT.DROP_DOWN);
-		defaultsItem.setMenu(defaultsSubmenu);
-		
-		resetConfigItem = new MenuItem(defaultsSubmenu, SWT.PUSH);
-		resetConfigItem.setText("Reset config.txt");
-		resetConfigItem.addListener(SWT.Selection, resetConfigListener);
-		
-		resetExchangesItem = new MenuItem(defaultsSubmenu, SWT.PUSH);
-		resetExchangesItem.setText("Reset exchanges.txt");
-		resetExchangesItem.addListener(SWT.Selection, resetExchangesListener);
-		
-		resetAllItem = new MenuItem(defaultsSubmenu, SWT.PUSH);
-		resetAllItem.setText("Reset all");
-		resetAllItem.addListener(SWT.Selection, resetAllListener);
 		
 		//Lists -------------------------------------------------------------------------
 		coinlist = new List(shell, SWT.BORDER | SWT.V_SCROLL);
@@ -617,6 +580,50 @@ class RavenGUI
 			}
 		 });
 	}
+	
+	private void buildMenuBarItems()
+	{
+		//Menu bar -------------------------------------------------------------------------
+		menu = new Menu(shell, SWT.BAR);
+		shell.setMenuBar(menu);
+		
+		//Create menu bar buttons/lists
+		//Extra controls--------------------------------------------------------------------
+		controlsItem = new MenuItem(menu, SWT.CASCADE);
+		controlsItem.setText("Extra &Controls"); //Contains extra controls that don't have room for a button on the form
+		controlsSubmenu = new Menu(shell, SWT.DROP_DOWN);
+		controlsItem.setMenu(controlsSubmenu);
+		
+		//Create option to open the settings window
+		settingsItem = new MenuItem(controlsSubmenu, SWT.PUSH);
+		settingsItem.setText("&Settings");
+		settingsItem.addListener(SWT.Selection, settings_listener);
+		
+		//Create option to generate a full CSV report
+		fullCSVreportItem = new MenuItem(controlsSubmenu, SWT.PUSH);
+		fullCSVreportItem.setText("Generate CSV &report");
+		fullCSVreportItem.addListener(SWT.Selection, generate_full_csv_report);
+		
+		//----------------------------------------------------------------------------------
+		//Defaults
+		defaultsItem = new MenuItem(menu, SWT.CASCADE);
+		defaultsItem.setText("&Defaults");
+		defaultsSubmenu = new Menu(shell, SWT.DROP_DOWN);
+		defaultsItem.setMenu(defaultsSubmenu);
+		
+		resetConfigItem = new MenuItem(defaultsSubmenu, SWT.PUSH);
+		resetConfigItem.setText("Reset config.txt");
+		resetConfigItem.addListener(SWT.Selection, resetConfigListener);
+		
+		resetExchangesItem = new MenuItem(defaultsSubmenu, SWT.PUSH);
+		resetExchangesItem.setText("Reset exchanges.txt");
+		resetExchangesItem.addListener(SWT.Selection, resetExchangesListener);
+		
+		resetAllItem = new MenuItem(defaultsSubmenu, SWT.PUSH);
+		resetAllItem.setText("Reset all");
+		resetAllItem.addListener(SWT.Selection, resetAllListener);
+	}
+	
 	
 	/**
 	 * <p>Builds the options window.</p>
