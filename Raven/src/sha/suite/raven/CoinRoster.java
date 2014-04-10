@@ -23,58 +23,29 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /*
- * exchanges to implement:
- * 
- * -OkCoin 
- * -btc-e 
- * -bitfinex 
- * 			bter 
- * -fxbtc 
- * 			cryptsy 
- * -kraken 
- * -mcxnow 
- * -poloniex 
- * -justcoin 
- * -vircurex 
- * -the rock trading 
- * -crypto-trade 
- * -coinedup 
- * -bittrex 
- * -atomic trade (no api??)
- * -coins-e 
- * cryptonit
- * 			coinex
+ * Exchanges to implement:
+ * 		https://bitcointalk.org/index.php?topic=557931.msg6079112#msg6079112
  */
 
 public class CoinRoster
 {
 	final String CRYPTSY_URL = "http://pubapi.cryptsy.com/api.php?method=marketdatav2";
+	
 	final String COINEX_URL = "https://coinex.pw/api/v2/trade_pairs";
+	
 	final String COINEDUP_URL = "https://api.coinedup.com/markets";
 	
 	final String BTER_PAIRS_URL = "http://data.bter.com/api/1/pairs";
 	final String BTER_TICKERS_URL = "http://data.bter.com/api/1/tickers";
+	
 	final String BTC_E_URL = "https://btc-e.com/tapi";
 	
-	final String OKCOIN_URL = "";
 	final String BITFINEX_URL = "https://api.bitfinex.com/v1";
-	final String FXBTC_URL = "";
 	
 	final String KRAKEN_URL_ASSET_PAIRS = "https://api.kraken.com/0/public/AssetPairs";
 	final String KRAKEN_URL_TRADES = "https://api.kraken.com/0/public/Trades";
-	final String MCXNOW_URL = "";
-	final String POLONIEX_URL = "";
 	
-	final String JUSTCOIN_URL = "";
-	final String VIRCUREX_URL = "";
-	final String THE_ROCK_TRADING_URL = "";
-	
-	final String CRYPTO_TRADE_URL = "";
-	final String BITTREX_URL = "";
-	final String ATOMIC_TRADE_URL = "";
-	
-	final String COINS_E_URL = "";
-	final String CRYPTONIT = "";
+	final String BITTREX_URL = "https://bittrex.com/api/v1/public/getmarketsummaries";
 	
 	final String PROCESSING = "Processing individual coin info";
 	
@@ -140,12 +111,8 @@ public class CoinRoster
 				processCoinedup();
 			else if (_exch.contentEquals("BTER"))
 				processBter();
-//			else if (_exch.contentEquals("BTC-E"))
-//				processBtc_e();
-//			else if (_exch.contentEquals("OKCOIN"))
-//				processOKCoin();
-//			else if (_exch.contentEquals("BITFINEX"))
-//				processBitfinex();
+			else if (_exch.contentEquals("BITTREX"))
+				processBittrex();
 			else if (_exch.contentEquals("KRAKEN"))
 				processKraken();		
 		}
@@ -160,7 +127,7 @@ public class CoinRoster
 	private void processCryptsy() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{		
 		//Connect to crypsty and download JSON string
-		RavenGUI.log("Collecting Cryptsy's market information");
+		RavenGUI.log("CRYPTSY: Collecting market information");
 		String JSON = GetAllMarketInfo(CRYPTSY_URL);
 
 		Coin tempC = null;
@@ -194,7 +161,7 @@ public class CoinRoster
 	
 	private void processCoinex()
 	{
-		RavenGUI.log("Collecting Coinex's market info");
+		RavenGUI.log("COINEX: Collecting market information");
 		try
 		{
 			String JSON = GetAllMarketInfo(COINEX_URL);
@@ -253,7 +220,7 @@ public class CoinRoster
 	
 	private void processCoinedup() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
-		RavenGUI.log("Collecting Coinedup's market info");
+		RavenGUI.log("COINEDUP: Collecting market information");
 		String JSON = GetAllMarketInfo(COINEDUP_URL);
 		RavenGUI.log(JSON);
 		//JSONObject j = new JSONObject(JSON);
@@ -262,7 +229,7 @@ public class CoinRoster
 	
 	private void processBter() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
-		RavenGUI.log("Collecting Bter's market info");
+		RavenGUI.log("BTER: Collecting market information");
 		String JSON_tickers = GetAllMarketInfo(BTER_TICKERS_URL);
 		try
 		{
@@ -307,9 +274,58 @@ public class CoinRoster
 		}
 	}
 	
+	private void processBittrex() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
+	{
+		RavenGUI.log("BITTREX: Collecting market information");
+		String JSON = GetAllMarketInfo(BITTREX_URL);
+		try
+		{
+			if (JSON.length() > 0)
+			{
+				RavenGUI.log(this._exch + ": " + PROCESSING);
+				
+				Coin tempC = null;
+				
+				JSONObject j = new JSONObject(JSON);
+				if (j.getBoolean("success"))
+				{
+					JSONArray ja = j.getJSONArray("result");
+					
+					for (int i = 0; i < ja.length(); i++)
+					{
+						tempC = new Coin();
+						JSONObject jt = ja.getJSONObject(i);
+						String coincode = jt.getString("MarketName");
+						
+						tempC.setExch("BITTREX");
+						tempC.setLastTrade((jt.get("Last").toString() != "null") ? jt.getDouble("Last") : -1);
+						tempC.setPriCode(coincode.substring(0, coincode.indexOf("-"))); //get first half of label
+						tempC.setSecCode(coincode.substring(coincode.indexOf("-") + 1)); //get second half of label
+						tempC.setVolume((jt.get("Volume").toString() != "null") ? jt.getDouble("Volume") : -1);
+						tempC.setBuy(tempC.getLastTrade());
+						tempC.setSell(tempC.getLastTrade());
+						
+						//Add tempC to _roster so this CoinRoster object may track it properly
+						addCoin(tempC);
+					}
+					_validProcessing = true;
+				}
+			}
+			else
+			{
+				_validProcessing = false;
+			}
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+			RavenGUI.log("--BTER: Unable to collect response");
+		}
+	}
+	
 	private void processBtc_e() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
-		RavenGUI.log("Collecting BTC-E's market info");
+		RavenGUI.log("BTC-E: Collecting market information");
 		
 		String JSON = GetAllMarketInfo(BTC_E_URL);
 		try
@@ -351,7 +367,7 @@ public class CoinRoster
 	
 	private void processKraken() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
-		RavenGUI.log("Collecting Kraken's market info");
+		RavenGUI.log("KRAKEN: Collecting market information");
 		
 		String JSON = GetAllMarketInfo(KRAKEN_URL_TRADES);
 		try
@@ -359,7 +375,6 @@ public class CoinRoster
 			if (JSON.length() > 0)
 			{
 				RavenGUI.log(this._exch + ": " + PROCESSING);
-				
 				
 				//JSONObject j = new JSONObject(JSON);
 				JSONArray ja = new JSONArray(JSON);
@@ -665,6 +680,21 @@ public class CoinRoster
 				conn.setRequestProperty("X-BFX-APIKEY", /*authenticating API key goes here*/"");
 				conn.setRequestProperty("X-BFX-PAYLOAD", payload);
 				conn.setRequestProperty("X-BFX-SIGNATURE", "");
+			}
+			else if (url.contains("bittrex.com/api/v1/public/getmarketsummaries"))
+			{
+				URLConnection conn = apiResponse.openConnection();
+				
+				conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
+				conn.setRequestProperty("Accept-Charset", "utf-8");
+				
+				BufferedReader pairsIn = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+				
+				String tIn = null;
+				while ((tIn = pairsIn.readLine()) != null)
+				{
+					JSON += tIn;
+				}
 			}
 			else //-----------------------------------------------------------------------------------------------
 			{

@@ -32,6 +32,7 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
@@ -72,6 +73,7 @@ class RavenGUI
 	MenuItem controlsItem = null;
 	MenuItem settingsItem = null;
 	MenuItem fullCSVreportItem = null;
+	MenuItem infoItem = null;
 	MenuItem defaultsItem = null;
 	MenuItem resetConfigItem = null;
 	MenuItem resetExchangesItem = null;
@@ -139,9 +141,9 @@ class RavenGUI
 	//For selected exchanges
 	java.util.List<String> masterexchangelist = null;
 	java.util.List<String> exchangelist = null;
-	//java.util.List<Boolean> requestedExchs = null;
 	Map<String,Boolean> requestedExchs = null;
 	int wantedExchs;
+	boolean runPopupOnLoad = false;
 	
 	//For recurring schedule
 	Timer updateTimer = null;
@@ -149,6 +151,7 @@ class RavenGUI
 	long scheduledUpdateInterval = 0;
 	boolean commitUpdates = false;
 	EP ep = null;
+	Popup popup = null;
 	
 	//config.txt and exchanges.txt filepaths
 	final String EXCHANGE_FILE_PATH = "exchanges.txt";
@@ -222,6 +225,107 @@ class RavenGUI
 		}
 	}
 	
+	/**
+	 * <p>Displays a pop-up window for the user.</p>
+	 * @param popup - Which pop-up to display {"chat"}
+	 */
+	class Popup extends Thread
+	{
+		String _popup = null;
+		Popup(){}
+		
+		Popup(String popup)
+		{
+			_popup = popup;
+		}
+		
+		public void run()
+		{
+			if (_popup != null)
+			{
+				if (_popup.toLowerCase().contentEquals("chat"))
+				{
+					display.asyncExec(new Runnable()
+					{
+						@Override
+						public void run()
+						{
+							final Shell popshell = new Shell(display, SWT.SHELL_TRIM & ~SWT.RESIZE);
+							
+							popshell.setBounds(shell.getBounds().x + 52, shell.getBounds().y + 180, 450, 170);
+						
+							Link text = new Link(popshell, SWT.NONE);
+							Button OK = new Button(popshell, SWT.PUSH);
+							
+							text.setLocation(10,10);
+							OK.setBounds(popshell.getBounds().width / 2 - 50, popshell.getBounds().height - 70, 100, 30);
+							
+							String linktext = "Thanks for using Raven! If you haven't already, please tell us what you think at\n" +
+									"<a href=\"https://bitcointalk.org/index.php?topic=557931.msg6079112#msg6079112\">our Bitcointalk thread</a> (don't be shy!!)\n\n" +
+									"" +
+									"<a href=\"http://shasoftware.com/OurWork/Software\">Raven official info page</a>\n" +
+									"<a href=\"https://github.com/Sha-Software/Raven\">Raven github repository</a>";
+							
+							popshell.setText("Raven Info");
+							if (runPopupOnLoad)
+							{
+								linktext += "\n\nThis popup is currently set to appear every time you launch Raven. This can be\n" +
+									"disabled in the settings menu or config file. If you want to view this popup\n" +
+									"without relaunching Raven, you can do so by clicking \"Show Raven Info\" in\n" +
+									"the General tab on the menu bar.";
+								popshell.setBounds(shell.getBounds().x + 52, shell.getBounds().y + 180, 450, 240);
+								OK.setBounds(popshell.getBounds().width / 2 - 50, popshell.getBounds().height - 70, 100, 30);
+							}
+							
+							text.setText(linktext);
+							text.pack();
+							
+							text.addListener(SWT.Selection, new Listener() 
+							{
+								@Override
+								public void handleEvent(Event e)
+								{
+									try
+									{
+										openInBrowser(new URI(e.text));
+									} 
+									catch (IOException ioe)
+									{
+										ioe.printStackTrace();
+									} catch (URISyntaxException urise)
+									{
+										urise.printStackTrace();
+									}
+								}
+							});
+							
+							OK.setText("OK");
+							OK.addListener(SWT.MouseDown, new Listener()
+							{
+								@Override
+								public void handleEvent(Event arg0)
+								{
+									popshell.dispose();
+								}
+							});
+							
+							popshell.open();
+							while(!popshell.isDisposed())
+								if (!display.readAndDispatch())
+									display.sleep();
+							popshell.dispose();
+						}
+					});
+					
+				}
+			}
+			else
+				System.out.println("Pop-up choice has not been set (null)");
+		}
+		
+		public void setPopup(String popup) {_popup = popup;}
+	}
+	
 	/* ************************************************************************************************** *
 	 * Menu bar Listeners 																				  *
 	 * ************************************************************************************************** */
@@ -241,6 +345,15 @@ class RavenGUI
 		public void handleEvent(Event arg0)
 		{
 			generateFullCSVReport();
+		}
+	};
+	
+	Listener open_popup_listener = new Listener()
+	{
+		@Override
+		public void handleEvent(Event arg0)
+		{
+			(popup = new Popup("chat")).start();
 		}
 	};
 	
@@ -293,7 +406,7 @@ class RavenGUI
 //		exchangeUrls.put("okcoin", "");
 //		exchangeUrls.put("bitfinex", "");
 //		exchangeUrls.put("fxbtc", "");
-//		exchangeUrls.put("kraken", "");
+		exchangeUrls.put("KRAKEN", "https://www.kraken.com/market");
 //		exchangeUrls.put("mcxnow", "");
 //		exchangeUrls.put("poloniex", "");
 //		exchangeUrls.put("justcoin", "");
@@ -301,10 +414,13 @@ class RavenGUI
 //		exchangeUrls.put("the rock trading", "");
 //		exchangeUrls.put("crypto-trade", "");
 //		exchangeUrls.put("coinedup", "");
-//		exchangeUrls.put("bittrex", "");
+		exchangeUrls.put("BITTREX", "https://bittrex.com/");
 //		exchangeUrls.put("atomic-trade", "");
 //		exchangeUrls.put("coins-e", "");
 //		exchangeUrls.put("cryptonit", "");
+		
+		popup = new Popup();
+		popup.setPopup("chat");
 	}
 
 	
@@ -334,6 +450,9 @@ class RavenGUI
 		 });
 		 
 		 shell.open();
+		 
+		 if (runPopupOnLoad) popup.start();
+		 
 		 while (!shell.isDisposed())
 			 if (!display.readAndDispatch())
 				 display.sleep();
@@ -352,7 +471,7 @@ class RavenGUI
 		display = new Display();
 		shell = new Shell(display, SWT.SHELL_TRIM & ~SWT.RESIZE & ~SWT.MAX); //prevent resizing of window
 		
-		
+		buildMenuBarItems();
 		
 		//Lists -------------------------------------------------------------------------
 		coinlist = new List(shell, SWT.BORDER | SWT.V_SCROLL);
@@ -491,19 +610,17 @@ class RavenGUI
 			{
 				if (buyFromlist.getSelectionCount() > 0)
 				{
+					
 					try
 					{
-						if (Desktop.isDesktopSupported())
-						{
-							URI uri = new URI(exchangeUrls.get(buyFromlist.getItem(buyFromlist.getSelectionIndex())));
-							Desktop.getDesktop().browse(uri);
-						}
+						URI uri = new URI(exchangeUrls.get(buyFromlist.getItem(buyFromlist.getSelectionIndex())));
+						openInBrowser(uri);
+						
 					}
 					catch (URISyntaxException urise)
 					{
 						urise.printStackTrace();
-					}
-					catch (IOException ioe)
+					} catch (IOException ioe)
 					{
 						ioe.printStackTrace();
 					}
@@ -532,11 +649,8 @@ class RavenGUI
 				{
 					try
 					{
-						if (Desktop.isDesktopSupported())
-						{
-							URI uri = new URI(exchangeUrls.get(sellTolist.getItem(sellTolist.getSelectionIndex())));
-							Desktop.getDesktop().browse(uri);
-						}
+						URI uri = new URI(exchangeUrls.get(sellTolist.getItem(sellTolist.getSelectionIndex())));
+						openInBrowser(uri);
 					}
 					catch (URISyntaxException urise)
 					{
@@ -581,6 +695,9 @@ class RavenGUI
 		 });
 	}
 	
+	/**
+	 * <p>Creates and allocates menu bar items</p>
+	 */
 	private void buildMenuBarItems()
 	{
 		//Menu bar -------------------------------------------------------------------------
@@ -590,7 +707,7 @@ class RavenGUI
 		//Create menu bar buttons/lists
 		//Extra controls--------------------------------------------------------------------
 		controlsItem = new MenuItem(menu, SWT.CASCADE);
-		controlsItem.setText("Extra &Controls"); //Contains extra controls that don't have room for a button on the form
+		controlsItem.setText("&General"); //Contains extra controls that don't have room for a button on the form
 		controlsSubmenu = new Menu(shell, SWT.DROP_DOWN);
 		controlsItem.setMenu(controlsSubmenu);
 		
@@ -603,6 +720,10 @@ class RavenGUI
 		fullCSVreportItem = new MenuItem(controlsSubmenu, SWT.PUSH);
 		fullCSVreportItem.setText("Generate CSV &report");
 		fullCSVreportItem.addListener(SWT.Selection, generate_full_csv_report);
+		
+		infoItem = new MenuItem(controlsSubmenu, SWT.PUSH);
+		infoItem.setText("Raven info");
+		infoItem.addListener(SWT.Selection, open_popup_listener);
 		
 		//----------------------------------------------------------------------------------
 		//Defaults
@@ -638,6 +759,7 @@ class RavenGUI
 		Button savebut = new Button(setshell, SWT.PUSH);
 		final Button commitUpdatesBut = new Button(setshell, SWT.CHECK);
 		final Button recurringUpdatesBut = new Button(setshell, SWT.CHECK);
+		final Button showPopupOnLoadBut = new Button(setshell, SWT.CHECK);
 		
 		final Text recurringUpdatesInterval = new Text(setshell, SWT.BORDER);
 		
@@ -645,10 +767,12 @@ class RavenGUI
 		
 		Group exchangeGroup = new Group(setshell, SWT.SHADOW_NONE);
 		Group updateScheduling = new Group(setshell, SWT.SHADOW_NONE);
+		Group popupcheck = new Group(setshell, SWT.SHADOW_NONE);
 		
 		//Positioning constants
 		final Rectangle EXCH_GROUP = new Rectangle(10, 10, 255, 200);
 		final Rectangle UPDATE_GROUP = new Rectangle(270, 10, 190, 100);
+		final Rectangle POPUP_GROUP = new Rectangle(270, 110, 192, 50);
 		
 		//Sizing and positioning ---------------------------------------------------------
 		setshell.setBounds(x - (RAVEN_SETTINGS_WIDTH / 2) + (RAVEN_MAIN_WIDTH / 2), y - (RAVEN_SETTINGS_HEIGHT / 2) + (RAVEN_MAIN_HEIGHT / 2), RAVEN_SETTINGS_WIDTH, RAVEN_SETTINGS_HEIGHT);
@@ -659,6 +783,7 @@ class RavenGUI
 		uncheckall.setBounds(EXCH_GROUP.x + 170, EXCH_GROUP.y + 80, 75, 50);
 		commitUpdatesBut.setLocation(280,30);
 		recurringUpdatesBut.setLocation(280,50);
+		showPopupOnLoadBut.setLocation(POPUP_GROUP.x + 10, POPUP_GROUP.y + 20);
 		
 		//Textboxes
 		recurringUpdatesInterval.setBounds(UPDATE_GROUP.x + 26, UPDATE_GROUP.y + 60, 60, 30);
@@ -672,6 +797,7 @@ class RavenGUI
 		//Group
 		exchangeGroup.setBounds(EXCH_GROUP);
 		updateScheduling.setBounds(UPDATE_GROUP);
+		popupcheck.setBounds(POPUP_GROUP);
 		
 		//Information and dialogue -------------------------------------------------------
 		setshell.setText("Settings");
@@ -689,6 +815,11 @@ class RavenGUI
 		recurringUpdatesBut.pack();
 		recurringUpdatesBut.setToolTipText("When checked, Raven automatically updates the coin list at an interval that you specify");
 		
+		showPopupOnLoadBut.setText("Show info popup onload");
+		showPopupOnLoadBut.pack();
+		showPopupOnLoadBut.setToolTipText("When checked, a popup for information will appear every time Raven is launched.");
+		
+		//Textboxes
 		recurringUpdatesInterval.setFont(new Font(disp, LABELS_FONT, 16, SWT.NONE));
 		
 		//Labels
@@ -697,6 +828,7 @@ class RavenGUI
 		//Group
 		exchangeGroup.setText("Select exchanges");
 		updateScheduling.setText("Update and Scheduling");
+		popupcheck.setText("Popups and notifications");
 		
 		//Exchange group processing
 		for (int i = 0; i < masterexchangelist.size(); i++)
@@ -710,6 +842,7 @@ class RavenGUI
 		commitUpdatesBut.setSelection(commitUpdates);
 		recurringUpdatesBut.setSelection(scheduleUpdates);
 		recurringUpdatesInterval.setText(Long.toString(scheduledUpdateInterval));
+		showPopupOnLoadBut.setSelection(runPopupOnLoad);
 		
 		
 		//Event handlers -----------------------------------------------------------------
@@ -751,7 +884,7 @@ class RavenGUI
 					commitUpdates = commitUpdatesBut.getSelection();
 					scheduleUpdates = recurringUpdatesBut.getSelection();
 					scheduledUpdateInterval = Long.parseLong(recurringUpdatesInterval.getText());
-					
+					runPopupOnLoad = showPopupOnLoadBut.getSelection();
 					
 					commitUpdatesBut.setText("Commit each update to CSV"); commitUpdatesBut.pack();
 					saveUserSettings(setshell, exchChecklist);
@@ -786,23 +919,7 @@ class RavenGUI
 	
 	private void buildSplash(String welcomeMsg)
 	{
-		/*Display disp = new Display();
-		Shell sh = new Shell(disp);
 		
-		// set widgets size to their preferred size
-		sh.open();
-		
-		try
-		{
-			Thread.sleep(2500);
-		}
-		catch (InterruptedException e)
-		{
-			e.printStackTrace();
-		}
-		
-		// disposes all associated windows and their components
-		disp.dispose();*/
 	}
 	
 	public static void log(final String msg)
@@ -875,6 +992,8 @@ class RavenGUI
 		for (int i = 0; i < exchtable.getColumnCount(); i++)
 			exchtable.getColumn(i).pack();
 	}
+	
+	
 	
 	/* ******************************************************************************************************* *
 	 * Non-GUI methods																						   *
@@ -1077,10 +1196,12 @@ class RavenGUI
 				pw.println("#");
 				pw.println("# INTERVAL_UPDATE controls if Raven automatically updates the coin list");
 				pw.println("# INTERVAL_UPDATE_TIME controls the amount of time Raven waits to update (in minutes, integer values (> 0) only)");
-				pw.println("");
+				pw.println("#");
+				pw.println("# RUN_POPUP_ONLOAD controls if the Raven info popup displays when Raven is launched");
 				pw.println("UPDATE_COMMIT:false");
 				pw.println("INTERVAL_UPDATE:false");
 				pw.println("INTERVAL_UPDATE_TIME:5");
+				pw.println("RUN_POPUP_ONLOAD:true");
 				
 				//Reset settings currently in memory
 				commitUpdates = false;
@@ -1138,7 +1259,7 @@ class RavenGUI
 				pw.println("okcoin,F");
 				pw.println("bitfinex,F");
 				pw.println("fxbtc,F");
-				pw.println("kraken,F");
+				pw.println("kraken,T");
 				pw.println("mcxnow,F");
 				pw.println("poloniex,F");
 				pw.println("justcoin,F");
@@ -1146,7 +1267,7 @@ class RavenGUI
 				pw.println("the rock trading,F");
 				pw.println("crypto-trade,F");
 				pw.println("coinedup,F");
-				pw.println("bittrex,F");
+				pw.println("bittrex,T");
 				pw.println("atomic trade,F");
 				pw.println("coins-e,F");
 				pw.println("cryptonit,F");
@@ -1157,6 +1278,8 @@ class RavenGUI
 				exchangelist.add("cryptsy");
 				exchangelist.add("coinex");
 				exchangelist.add("bter");
+				exchangelist.add("kraken");
+				exchangelist.add("bittrex");
 				
 			}
 			catch (IOException e){e.printStackTrace();}
@@ -1220,10 +1343,20 @@ class RavenGUI
 			//---------------------------------------------------------------------------------------------
 			
 			//Recurring schedule settings
-			boolean activeSchedule = (userSettings.get("INTERVAL_UPDATE").toString().equalsIgnoreCase("true")) ? true : false;
-			boolean commitPerUpdate = (userSettings.get("UPDATE_COMMIT").toString().equalsIgnoreCase("true")) ? true : false;
-			long interval = 0;
+			boolean activeSchedule = false;
+			try {activeSchedule = (userSettings.get("INTERVAL_UPDATE").toString().equalsIgnoreCase("true")) ? true : false;}
+			catch (NullPointerException npe)
+			{
+				log("SETTINGS: Error loading INTERVAL_UPDATE boolean, using default (false)");
+			}
+			boolean commitPerUpdate = false;
+			try {commitPerUpdate = (userSettings.get("UPDATE_COMMIT").toString().equalsIgnoreCase("true")) ? true : false;}
+			catch (NullPointerException npe)
+			{
+				log("SETTINGS: Error loading UPDATE_COMMIT boolean, using default (false)");
+			}
 			
+			long interval = 0;
 			try
 			{
 				interval = Long.parseLong(userSettings.get("INTERVAL_UPDATE_TIME").toString());
@@ -1231,9 +1364,24 @@ class RavenGUI
 			}
 			catch (NumberFormatException nfe)
 			{
-				log("SETTINGS: Error loading scheduling interval, using default (5 min) instead.");
+				log("SETTINGS: Error loading INTERVAL_UPDATE_TIME number, using default (5 min) instead.");
 				setRecurringUpdate(activeSchedule, 60000*5, commitPerUpdate);
 			}
+			catch (NullPointerException npe)
+			{
+				log("SETTINGS: Error loading INTERVAL_UPDATE_TIME number, using default (5 min) instead.");
+				setRecurringUpdate(activeSchedule, 60000*5, commitPerUpdate);
+			}
+			
+			//Popup setting
+			try	{runPopupOnLoad = (userSettings.get("RUN_POPUP_ONLOAD").toString().equalsIgnoreCase("true")) ? true : false;}
+			catch (NullPointerException npe)
+			{
+				log("SETTINGS: Error loading RUN_POPUP_ONLOAD, using default (true)");
+				runPopupOnLoad = true;
+			}
+			
+			
 			
 			//Other settings
 		}
@@ -1389,7 +1537,7 @@ class RavenGUI
 			pw.println("UPDATE_COMMIT:" + Boolean.toString(commitUpdates));
 			pw.println("INTERVAL_UPDATE:" + Boolean.toString(scheduleUpdates));
 			pw.println("INTERVAL_UPDATE_TIME:" + Long.toString(scheduledUpdateInterval));
-			
+			pw.println("RUN_POPUP_ONLOAD:" + Boolean.toString(runPopupOnLoad));
 			
 		}
 		catch (IOException e1)
@@ -1568,5 +1716,15 @@ class RavenGUI
 		}
 	}
 
+	private boolean openInBrowser(URI uri) throws IOException
+	{
+		if (Desktop.isDesktopSupported())
+		{
+			Desktop.getDesktop().browse(uri);
+			return true;
+		}
+		return false;
+	}
+	
 }
 
