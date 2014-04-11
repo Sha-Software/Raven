@@ -596,21 +596,20 @@ class RavenGUI
 			@Override
 			public void handleEvent(Event arg0)
 			{
-				if (sellTolist.getSelectionCount() > 0)
+				if (sellTolist.getSelectionCount() > 0 && buyFromlist.getSelectionCount() > 0)
 				{
 					updateTable(buyFromlist.getItem(buyFromlist.getSelectionIndex()).toString(), sellTolist.getItem(sellTolist.getSelectionIndex()).toString());
 				}
 			}
 		 });
 		 
-		 buyFromlist.addListener(SWT.MouseDoubleClick, new Listener () //Double click
+		 buyFromlist.addListener(SWT.MouseDoubleClick, new Listener ()
 		 {
 			@Override
 			public void handleEvent(Event arg0)
 			{
 				if (buyFromlist.getSelectionCount() > 0)
 				{
-					
 					try
 					{
 						URI uri = new URI(exchangeUrls.get(buyFromlist.getItem(buyFromlist.getSelectionIndex())));
@@ -633,7 +632,7 @@ class RavenGUI
 			@Override
 			public void handleEvent(Event arg0)
 			{
-				if (buyFromlist.getSelectionCount() > 0)
+				if (buyFromlist.getSelectionCount() > 0 && sellTolist.getSelectionCount() > 0)
 				{
 					updateTable(buyFromlist.getItem(buyFromlist.getSelectionIndex()).toString(), sellTolist.getItem(sellTolist.getSelectionIndex()).toString());
 				}

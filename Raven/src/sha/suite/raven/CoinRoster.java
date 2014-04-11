@@ -11,8 +11,10 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import javax.crypto.Mac;
@@ -114,7 +116,9 @@ public class CoinRoster
 			else if (_exch.contentEquals("BITTREX"))
 				processBittrex();
 			else if (_exch.contentEquals("KRAKEN"))
-				processKraken();		
+				processKraken();
+			else if (_exch.contentEquals("BITFINEX"))
+				processBitfinex();
 		}
 		catch (UnsupportedEncodingException uee){uee.printStackTrace();}
 		catch (IllegalStateException ise){ise.printStackTrace();}
@@ -359,9 +363,35 @@ public class CoinRoster
 		
 	}
 	
-	private void processBitfinex()
+	private void processBitfinex() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
-		
+		RavenGUI.log("BITTREX: Collecting market information");
+		String JSON = GetAllMarketInfo(BITFINEX_URL);
+		try
+		{
+			if (JSON.length() > 0)
+			{
+				RavenGUI.log(this._exch + ": " + PROCESSING);
+				
+				Coin tempC = null;
+				
+				JSONObject j = new JSONObject(JSON);
+				
+				
+				
+				
+				_validProcessing = true;
+			}
+			else
+			{
+				_validProcessing = false;
+			}
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+			RavenGUI.log("--BTER: Unable to collect response");
+		}
 		
 	}
 	
@@ -513,74 +543,6 @@ public class CoinRoster
 			}
 			else if (url.contains("btce"))
 			{
-				 Map<String, String> args = new HashMap<String, String>();
-				 SecretKeySpec key = null;
-				 Mac mac;
-				 
-				 args.put("method","TradeHistory");
-				 args.put("nonce", Long.toString(System.nanoTime()));
-				 
-				 String postdata = "";
-				 
-				 for (Iterator argIt = args.entrySet().iterator(); argIt.hasNext();)
-				 {
-					 Map.Entry argument = (Map.Entry)argIt.next();
-					 
-					 if (postdata.length() > 0)
-					 {
-						 postdata += "&";
-					 }
-					 
-					 postdata += argument.getKey() + "=" + argument.getValue();
-				 }
-				 
-			 // Create a new secret key
-		        try
-		        {
-		            key = new SecretKeySpec(postdata.getBytes("UTF-8"), "HmacSHA512");
-		        }
-		        catch( UnsupportedEncodingException uee)
-		        {
-		            System.err.println( "Unsupported encoding exception: " + uee.toString());
-		            return null;
-		        }
-		 
-		        // Create a new mac
-		        try
-		        {
-		            mac = Mac.getInstance("HmacSHA512");
-		        }
-		        catch( NoSuchAlgorithmException nsae)
-		        {
-		            System.err.println( "No such algorithm exception: " + nsae.toString());
-		            return null;
-		        }
-		 
-		        // Init mac with key.
-		        try
-		        {
-		            mac.init(key);
-		        }
-		        catch( InvalidKeyException ike)
-		        {
-		            System.err.println( "Invalid key exception: " + ike.toString());
-		            return null;
-		        }
-			 
-		        // Add the key to the header lines.
-		        //headerLines.put( "Key", key);
-		 
-		        // Encode the post data by the secret and encode the result as base64.
-		        /*try
-		        {
-		            headerLines.put( "Sign", Hex.encodeHexString( mac.doFinal( postData.getBytes( "UTF-8"))));
-		        }
-		        catch( UnsupportedEncodingException uee)
-		        {
-		            System.err.println( "Unsupported encoding exception: " + uee.toString());
-		            return null;
-		        } */
-				 
 			}
 			else if (url.contains("api.kraken.com/0/public/Trades"))
 			{
@@ -637,8 +599,11 @@ public class CoinRoster
 								code = jn.length();
 						}
 					}
-					JSON = JSON.substring(0, JSON.length() - 2); //remove ending comma
-					JSON += "}]"; //close JSON syntax
+					if (JSON.length() >= 2)
+					{
+						JSON = JSON.substring(0, JSON.length() - 2); //remove ending comma
+						JSON += "}]"; //close JSON syntax
+					}
 				}
 			}
 			else if (url.contains("api.kraken.com/0/public/AssetPairs"))
@@ -659,27 +624,51 @@ public class CoinRoster
 					assetIn.close();
 				}
 			}
-			else if (url.contains("bitfinex"))
+			else if (url.contains("api.bitfinex.com/v1/"))
 			{
 				//   https://api.bitfinex.com/v1
 				//   /book/:symbol - get full orderbook
 				
-				URLConnection conn = null;
-				conn = apiResponse.openConnection();
+				URLConnection conn = apiResponse.openConnection();
 				conn.setDoOutput(true);
-									
-				//Build a string of the JSON required to make the request and encode it
-				//into base64
-				byte [] encoded = Base64.encodeBase64(new String("{request:" + "stuff " +
-						"nonce:" + System.currentTimeMillis() +
-						"options:{}}").getBytes());
+				conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
+				conn.setRequestProperty("Accept-Charset", "utf-8");
 				
-				String payload = null;
-				for (byte b : encoded) { payload += Byte.toString(b); }
+				BufferedReader pairsIn = new BufferedReader(new InputStreamReader(conn.getInputStream()));
 				
-				conn.setRequestProperty("X-BFX-APIKEY", /*authenticating API key goes here*/"");
-				conn.setRequestProperty("X-BFX-PAYLOAD", payload);
-				conn.setRequestProperty("X-BFX-SIGNATURE", "");
+				String tpair = null;
+				List<String> pairs = new ArrayList<String>();
+				while ((tpair = pairsIn.readLine()) != null)
+				{
+					pairs.add(tpair);
+				}
+				
+				//Prepare JSON string as a JSON array
+				JSON = "[";
+				for (int i = 0; i < pairs.size(); i++)
+				{
+					conn = new URL("https://api.bitfinex.com/v1/pubticker/").openConnection();
+					conn.setDoOutput(true);
+					conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
+					conn.setRequestProperty("Accept-Charset", "utf-8");
+					
+					OutputStreamWriter out = new OutputStreamWriter(conn.getOutputStream());
+					out.write(pairs.get(i));
+					
+					pairsIn = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+					tpair = null;
+					while ((tpair = pairsIn.readLine()) != null)
+					{
+						JSON += "{ " + pairs.get(i) + ":" + tpair + "},";
+					}
+					
+				}
+				
+				if (JSON.length() >= 2)
+				{
+					JSON = JSON.substring(0, JSON.length() - 2); //remove ending comma
+					JSON += "]"; //close JSON syntax
+				}
 			}
 			else if (url.contains("bittrex.com/api/v1/public/getmarketsummaries"))
 			{

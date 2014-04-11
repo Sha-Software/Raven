@@ -14,15 +14,14 @@
 # parseboolean = Set to 'T' if you wants this exchange's info; F otherwise.
 #
 # Use the # symbol if you want to write a comment in this file.
-
-cryptsy,T
+cryptsy,F
 coinex,T
 bter,T
 btc-e,F
 okcoin,F
 bitfinex,F
 fxbtc,F
-kraken,T
+kraken,F
 mcxnow,F
 poloniex,F
 justcoin,F
