@@ -42,7 +42,7 @@ public class CoinRoster
 	
 	final String BTC_E_URL = "https://btc-e.com/tapi";
 	
-	final String BITFINEX_URL = "https://api.bitfinex.com/v1";
+	final String BITFINEX_URL = "https://api.bitfinex.com/v1/symbols";
 	
 	final String KRAKEN_URL_ASSET_PAIRS = "https://api.kraken.com/0/public/AssetPairs";
 	final String KRAKEN_URL_TRADES = "https://api.kraken.com/0/public/Trades";
@@ -365,7 +365,7 @@ public class CoinRoster
 	
 	private void processBitfinex() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
-		RavenGUI.log("BITTREX: Collecting market information");
+		RavenGUI.log("BITFINEX: Collecting market information");
 		String JSON = GetAllMarketInfo(BITFINEX_URL);
 		try
 		{
@@ -375,9 +375,25 @@ public class CoinRoster
 				
 				Coin tempC = null;
 				
-				JSONObject j = new JSONObject(JSON);
+				JSONArray j = new JSONArray(JSON);
 				
-				
+				for (int i = 0; i < j.length(); i++)
+				{
+					tempC = new Coin();
+					JSONObject jt = j.getJSONObject(i);
+					String code = jt.names().get(0).toString();
+					jt = jt.getJSONObject(code);
+					
+					tempC.setExch("BITFINEX");
+					tempC.setLastTrade(jt.getDouble("last_price"));
+					tempC.setPriCode(code.substring(0, 3));
+					tempC.setSecCode(code.substring(3));
+					tempC.setVolume(jt.getDouble("volume"));
+					tempC.setBuy(tempC.getLastTrade());
+					tempC.setSell(tempC.getLastTrade());
+					
+					addCoin(tempC);
+				}
 				
 				
 				_validProcessing = true;
@@ -390,7 +406,7 @@ public class CoinRoster
 		catch (Exception e)
 		{
 			e.printStackTrace();
-			RavenGUI.log("--BTER: Unable to collect response");
+			RavenGUI.log("--BITTREX: Unable to collect response");
 		}
 		
 	}
@@ -624,7 +640,7 @@ public class CoinRoster
 					assetIn.close();
 				}
 			}
-			else if (url.contains("api.bitfinex.com/v1/"))
+			else if (url.contains("bitfinex"))
 			{
 				//   https://api.bitfinex.com/v1
 				//   /book/:symbol - get full orderbook
@@ -636,30 +652,29 @@ public class CoinRoster
 				
 				BufferedReader pairsIn = new BufferedReader(new InputStreamReader(conn.getInputStream()));
 				
-				String tpair = null;
-				List<String> pairs = new ArrayList<String>();
+				String tpair = "";
+				String pairs = "";
 				while ((tpair = pairsIn.readLine()) != null)
 				{
-					pairs.add(tpair);
+					pairs += tpair;
 				}
+				
+				JSONArray j = new JSONArray(pairs);
 				
 				//Prepare JSON string as a JSON array
 				JSON = "[";
-				for (int i = 0; i < pairs.size(); i++)
+				for (int i = 0; i < j.length(); i++)
 				{
-					conn = new URL("https://api.bitfinex.com/v1/pubticker/").openConnection();
+					conn = new URL("https://api.bitfinex.com/v1/pubticker/" + j.getString(i)).openConnection();
 					conn.setDoOutput(true);
 					conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
 					conn.setRequestProperty("Accept-Charset", "utf-8");
-					
-					OutputStreamWriter out = new OutputStreamWriter(conn.getOutputStream());
-					out.write(pairs.get(i));
-					
+										
 					pairsIn = new BufferedReader(new InputStreamReader(conn.getInputStream()));
 					tpair = null;
 					while ((tpair = pairsIn.readLine()) != null)
 					{
-						JSON += "{ " + pairs.get(i) + ":" + tpair + "},";
+						JSON += "{\"" + j.get(i) + "\":" + tpair + "},";
 					}
 					
 				}
@@ -667,7 +682,7 @@ public class CoinRoster
 				if (JSON.length() >= 2)
 				{
 					JSON = JSON.substring(0, JSON.length() - 2); //remove ending comma
-					JSON += "]"; //close JSON syntax
+					JSON += "}]"; //close JSON syntax
 				}
 			}
 			else if (url.contains("bittrex.com/api/v1/public/getmarketsummaries"))
