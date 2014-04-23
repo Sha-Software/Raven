@@ -26,12 +26,15 @@ import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Layout;
 import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Listener;
@@ -90,6 +93,10 @@ class RavenGUI
 	final private int RAVEN_SETTINGS_WIDTH = 485;
 	final private int RAVEN_SETTINGS_HEIGHT = 270;
 	
+	//Layouts ------------------------------------------------------------
+	GridLayout mainlayout = null;
+	GridData [] gdata = null;
+	
 	//Comparison table ---------------------------------------------------
 	final private Rectangle COMPARISON_TABLE_BOUNDS = new Rectangle(120, 160, 410, 200);
 	
@@ -101,6 +108,7 @@ class RavenGUI
 	
 	//Buttons
 	final private Rectangle UPDATE_BOUNDS = new Rectangle(10, 370, 100, 30);
+	final private Rectangle SETTINGS_BOUNDS = new Rectangle(10, 410, 100, 30);
 	final private Rectangle SWAP_EXCHANGE_SELECTION_BOUNDS = new Rectangle(300, 70, 35, 30);
 		
 	//Labels
@@ -419,6 +427,9 @@ class RavenGUI
 //		exchangeUrls.put("coins-e", "");
 //		exchangeUrls.put("cryptonit", "");
 		
+		gdata = new GridData[10];
+		for (int i = 0; i < 10; i++) gdata[i] = new GridData();
+		
 		popup = new Popup();
 		popup.setPopup("chat");
 	}
@@ -469,52 +480,38 @@ class RavenGUI
  	 
 		//Main window -------------------------------------------------------------------------
 		display = new Display();
-		shell = new Shell(display, SWT.SHELL_TRIM & ~SWT.RESIZE & ~SWT.MAX); //prevent resizing of window
+		shell = new Shell(display, SWT.SHELL_TRIM /*& ~SWT.RESIZE & ~SWT.MAX*/); //prevent resizing of window
 		
 		buildMenuBarItems();
 		
-		//Lists -------------------------------------------------------------------------
+		//Layouts ------------------------------------------------------------------------
+		mainlayout = new GridLayout();
+		mainlayout.numColumns = 4;
+		
+		shell.setLayout(mainlayout);
+		setGridDataForControls(false);
+		
 		coinlist = new List(shell, SWT.BORDER | SWT.V_SCROLL);
+		//buyFromLab = new Label(shell, SWT.NONE);
 		buyFromlist = new List(shell, SWT.BORDER | SWT.V_SCROLL);
+		exchswapbut = new Button(shell, SWT.PUSH);
+		//sellToLab = new Label(shell, SWT.NONE);
 		sellTolist = new List(shell, SWT.BORDER | SWT.V_SCROLL);
-		loglist = new List(shell, SWT.BORDER | SWT.V_SCROLL);
- 	 
-		//Tables -------------------------------------------------------------------------
 		exchtable = new Table(shell, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION);
- 	 
-		//Buttons -------------------------------------------------------------------------
 		updatebut = new Button(shell, SWT.PUSH);
 		settingsbut = new Button(shell, SWT.PUSH);
-		exchswapbut = new Button(shell, SWT.PUSH);
+		loglist = new List(shell, SWT.BORDER | SWT.V_SCROLL);
 		
-		//Labels -------------------------------------------------------------------------
-		buyFromLab = new Label(shell, SWT.NONE);
-		sellToLab = new Label(shell, SWT.NONE);
- 	 
+		
+		
 		/* *********************************************************************************** */
 		 //Positioning and sizes -----------------------------------------------------------------
 		 
 		 //Main window -------------------------------------------------------------------------
 		 shell.setSize(RAVEN_MAIN_WIDTH, RAVEN_MAIN_HEIGHT);
-		 
-		 //Lists -------------------------------------------------------------------------
-		 coinlist.setBounds(UNIQUE_COINS_BOUNDS);
-		 buyFromlist.setBounds(BUY_FROM_BOUNDS);
-		 sellTolist.setBounds(SELL_TO_BOUNDS);
-		 loglist.setBounds(LOG_BOUNDS);
-		 
-		 //Tables -------------------------------------------------------------------------
-		 exchtable.setBounds(COMPARISON_TABLE_BOUNDS);
-		 
-		 //Buttons -------------------------------------------------------------------------
-		 updatebut.setBounds(UPDATE_BOUNDS);
-		 settingsbut.setBounds(10, 410, 100, 30);
-		 exchswapbut.setBounds(SWAP_EXCHANGE_SELECTION_BOUNDS);
-		 		 
-		 //Labels -------------------------------------------------------------------------
-		 buyFromLab.setLocation(BUY_FROM_POS);
-		 sellToLab.setLocation(SELL_TO_POS);
-		 
+		
+		
+		
 		 /* *********************************************************************************** */
 		 //Information and dialogue --------------------------------------------------------------
 		 //Shell -------------------------------------------------------------------------
@@ -529,20 +526,24 @@ class RavenGUI
 		 exchtable.setHeaderVisible(true);
  	 
 		 //Buttons -------------------------------------------------------------------------
-		 updatebut.setText("Update");
+		 updatebut.setText("   Update   ");
 		 updatebut.setToolTipText("Connects to and parses information from selected exchanges");
 		 
-		 settingsbut.setText("Settings");
+		 settingsbut.setText("  Settings  ");
 		 settingsbut.setToolTipText("Opens a new window with settings you can modify");
 		 
 		 exchswapbut.setText("<~>");
 		 exchswapbut.setToolTipText("Swaps the selection of exchanges");
 		 
 		 //Labels -------------------------------------------------------------------------
-		 buyFromLab.setText(BUY_LABEL);
-		 buyFromLab.pack();
-		 sellToLab.setText(SELL_LABEL);
-		 sellToLab.pack();
+		 //buyFromLab.setText(BUY_LABEL);
+		 //buyFromLab.pack();
+		 //sellToLab.setText(SELL_LABEL);
+		 //sellToLab.pack();
+		 
+		applyGridData();
+		shell.setSize(RAVEN_MAIN_WIDTH, RAVEN_MAIN_HEIGHT + 1); //debugging
+		shell.setSize(RAVEN_MAIN_WIDTH, RAVEN_MAIN_HEIGHT - 1); //debugging
 	}
 	
 	/**
@@ -744,6 +745,74 @@ class RavenGUI
 		resetAllItem.addListener(SWT.Selection, resetAllListener);
 	}
 	
+	/**
+	 * <p>Builds and applies layout data to controls on Raven's main form</p>
+	 */
+	private void setGridDataForControls(boolean apply)
+	{
+		//Coinlist ------------------------------------------------
+		gdata[0].verticalAlignment = GridData.FILL;
+		gdata[0].verticalSpan = 2;
+		gdata[0].grabExcessVerticalSpace = true;
+		
+		//buyFromlist ---------------------------------------------
+		//gdata[1].horizontalAlignment = GridData.FILL;
+		//gdata[1].verticalSpan = 2;
+		gdata[1].heightHint = 90;
+		
+		//sellTolist ----------------------------------------------
+		///gdata[2].verticalSpan = 2;
+		//gdata[2].horizontalAlignment = GridData.FILL;
+		gdata[2].heightHint = 90;
+		
+		//loglist -------------------------------------------------
+		gdata[3].horizontalAlignment = GridData.FILL; //loglist
+		gdata[3].grabExcessHorizontalSpace = true;
+		gdata[3].horizontalSpan = 4;
+		gdata[3].heightHint = 70;
+		
+		//exchtable -----------------------------------------------
+		gdata[4].verticalAlignment = GridData.FILL; 
+		gdata[4].horizontalAlignment = GridData.FILL;
+		gdata[4].grabExcessHorizontalSpace = true;
+		gdata[4].grabExcessVerticalSpace = true;
+		gdata[4].horizontalSpan = 3;
+		
+		//updatebut -----------------------------------------------
+		gdata[5].horizontalAlignment = GridData.CENTER;
+		gdata[5].minimumWidth = 100;
+		gdata[5].minimumHeight = 35;
+		
+		
+		//settingsbut ---------------------------------------------
+		gdata[6].horizontalAlignment = GridData.CENTER; 
+		
+		//exchswapbut ---------------------------------------------
+		gdata[7].horizontalAlignment = GridData.CENTER;
+		
+		//buyFromLab ----------------------------------------------
+		//gdata[8]; 
+		
+		//sellToLab -----------------------------------------------
+		//gdata[9]; 
+		
+		if (apply) applyGridData();
+	}
+	
+	private void applyGridData()
+	{
+		//Apply layout data to controls
+		 coinlist.setLayoutData(gdata[0]);
+		 buyFromlist.setLayoutData(gdata[1]);
+		 sellTolist.setLayoutData(gdata[2]);
+		 loglist.setLayoutData(gdata[3]);
+		 exchtable.setLayoutData(gdata[4]);
+		 updatebut.setLayoutData(gdata[5]);
+		 settingsbut.setLayoutData(gdata[6]);
+		 exchswapbut.setLayoutData(gdata[7]);
+		 //buyFromLab.setLayoutData(gdata[8]);
+		 //sellToLab.setLayoutData(gdata[9]);
+	}
 	
 	/**
 	 * <p>Builds the options window.</p>
@@ -940,11 +1009,11 @@ class RavenGUI
 	
 	private void resetTable()
 	{
-		exchtable.dispose();
-		exchtable = new Table(shell, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION);
+		exchtable.removeAll();
+		while (exchtable.getColumnCount() > 0) exchtable.getColumn(0).dispose();
 		exchtable.setLinesVisible(true);
 		exchtable.setHeaderVisible(true);
-		exchtable.setBounds(COMPARISON_TABLE_BOUNDS);
+		exchtable.setLayoutData(gdata[4]);
 	}
 	
 	private void updateTable(String exchSell, String exchBuy)
@@ -965,31 +1034,40 @@ class RavenGUI
 			column.setText(colheads.get(i));
 		}//end of column creation ---------------------------------------------------------------------
 		
+		
+		boolean uncommonMarkets = true;
+		TableItem i = null;
 		//Fill exchtable according to the two selected exchanges
 		for (int record = 0; record < marketNames.size(); record++)
 		{
-			TableItem i = new TableItem(exchtable, SWT.NONE);
-			i.setText(0, marketNames.get(record));
+			
 			Coin buyer = getCoin(exchSell, marketNames.get(record));
 			Coin seller = getCoin(exchBuy, marketNames.get(record));
 			
 			if (buyer != null && seller != null)
 			{
+				i = new TableItem(exchtable, SWT.NONE);
+				
+				i.setText(0, marketNames.get(record));
 				i.setText(1, d.format(buyer.getBuy()));
 				i.setText(2, d.format(seller.getSell()));
 				i.setText(3, d.format(seller.getSell() - buyer.getBuy()));
-			}
-			else
-			{
-				i.setText(1, "-");
-				i.setText(2, "-");
-				i.setText(3, "-");
+				
+				uncommonMarkets = false;
 			}
 		}
 		
+		if (uncommonMarkets)
+		{
+			//Remove columns and add 1 item explaining the error
+			while (exchtable.getColumnCount() > 0) exchtable.getColumn(0).dispose();
+			i = new TableItem(exchtable, SWT.NONE);
+			i.setText(0, "No common markets were found between " + buyFromlist.getItem(buyFromlist.getSelectionIndex()) + " and " + sellTolist.getItem(sellTolist.getSelectionIndex()));
+		}
+		
 		//Size columns
-		for (int i = 0; i < exchtable.getColumnCount(); i++)
-			exchtable.getColumn(i).pack();
+		for (int idx = 0; idx < exchtable.getColumnCount(); idx++)
+			exchtable.getColumn(idx).pack();
 	}
 	
 	
@@ -1256,7 +1334,7 @@ class RavenGUI
 				pw.println("bter,T");
 				pw.println("btc-e,F");
 				pw.println("okcoin,F");
-				pw.println("bitfinex,F");
+				pw.println("bitfinex,T");
 				pw.println("fxbtc,F");
 				pw.println("kraken,T");
 				pw.println("mcxnow,F");
@@ -1277,6 +1355,7 @@ class RavenGUI
 				exchangelist.add("cryptsy");
 				exchangelist.add("coinex");
 				exchangelist.add("bter");
+				exchangelist.add("bitfinex");
 				exchangelist.add("kraken");
 				exchangelist.add("bittrex");
 				

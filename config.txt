@@ -1,0 +1,18 @@
+# RAVEN CONFIGURATION FILE
+#
+# This config.txt file contains all settings excluding which exchanges will be processed (re: exchanges.txt).
+#
+# If this file becomes corrupted or moved, Raven will generate a new one either on launch or when settings
+# are saved. Raven can generate a default config.txt or exchanges.txt for you whenver you like--just click one
+# of the drop-down options in the main screen (Defaults).
+#
+# UPDATE_COMMIT controls if Raven generates a full CSV report every time it updates automatically
+#
+# INTERVAL_UPDATE controls if Raven automatically updates the coin list
+# INTERVAL_UPDATE_TIME controls the amount of time Raven waits to update (in minutes, integer values (> 0) only)
+#
+# RUN_POPUP_ONLOAD controls if the Raven info popup displays when Raven is launched
+UPDATE_COMMIT:false
+INTERVAL_UPDATE:false
+INTERVAL_UPDATE_TIME:5
+RUN_POPUP_ONLOAD:true
