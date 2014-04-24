@@ -142,6 +142,7 @@ class RavenGUI
 	Map<String,String> exchangeUrls = null;
 	
 	boolean safeToUseCoinlist = true;
+	String selectedCoinCode = "";
 	
 	/* ************************************************************************************************** *
 	 * Custom User Settings 																			  *
@@ -412,6 +413,7 @@ class RavenGUI
 		exchangeUrls.put("BTER", "https://bter.com/");
 		exchangeUrls.put("BTC-E", "https://btc-e.com/");
 //		exchangeUrls.put("okcoin", "");
+		exchangeUrls.put("BITSTAMP", "https://www.bitstamp.net/");
 //		exchangeUrls.put("bitfinex", "");
 //		exchangeUrls.put("fxbtc", "");
 		exchangeUrls.put("KRAKEN", "https://www.kraken.com/market");
@@ -501,45 +503,45 @@ class RavenGUI
 		updatebut = new Button(shell, SWT.PUSH);
 		settingsbut = new Button(shell, SWT.PUSH);
 		loglist = new List(shell, SWT.BORDER | SWT.V_SCROLL);
-		
-		
-		
+				
 		/* *********************************************************************************** */
-		 //Positioning and sizes -----------------------------------------------------------------
+		//Information and dialogue --------------------------------------------------------------
+		//Shell -------------------------------------------------------------------------
+		shell.setText(RAVEN_MAINSHELL_TITLE);
 		 
-		 //Main window -------------------------------------------------------------------------
-		 shell.setSize(RAVEN_MAIN_WIDTH, RAVEN_MAIN_HEIGHT);
-		
-		
-		
-		 /* *********************************************************************************** */
-		 //Information and dialogue --------------------------------------------------------------
-		 //Shell -------------------------------------------------------------------------
-		 shell.setText(RAVEN_MAINSHELL_TITLE);
+		//Lists -------------------------------------------------------------------------
+		buyFromlist.setToolTipText("Double-click an entry to open that exchange's website");
+		sellTolist.setToolTipText("Double-click an entry to open that exchange's website");
 		 
-		 //Lists -------------------------------------------------------------------------
-		 buyFromlist.setToolTipText("Double-click an entry to open that exchange's website");
-		 sellTolist.setToolTipText("Double-click an entry to open that exchange's website");
-		 
-		 //Table -------------------------------------------------------------------------
-		 exchtable.setLinesVisible(true);
-		 exchtable.setHeaderVisible(true);
+		//Table -------------------------------------------------------------------------
+		exchtable.setLinesVisible(true);
+		exchtable.setHeaderVisible(true);
  	 
-		 //Buttons -------------------------------------------------------------------------
-		 updatebut.setText("   Update   ");
-		 updatebut.setToolTipText("Connects to and parses information from selected exchanges");
+		//Buttons -------------------------------------------------------------------------
+		Font butFont = new Font(display, "", 9, SWT.NONE);
+		updatebut.setFont(butFont);
+		updatebut.setText("   Update   ");
+		updatebut.setToolTipText("Connects to and parses information from selected exchanges");
 		 
-		 settingsbut.setText("  Settings  ");
-		 settingsbut.setToolTipText("Opens a new window with settings you can modify");
+		settingsbut.setFont(butFont);
+		settingsbut.setText("  Settings  ");
+		settingsbut.setToolTipText("Opens a new window with settings you can modify");
 		 
-		 exchswapbut.setText("<~>");
-		 exchswapbut.setToolTipText("Swaps the selection of exchanges");
+		exchswapbut.setFont(butFont);
+		exchswapbut.setText("<~>");
+		exchswapbut.setToolTipText("Swaps the selection of exchanges");
 		 
-		 //Labels -------------------------------------------------------------------------
-		 //buyFromLab.setText(BUY_LABEL);
-		 //buyFromLab.pack();
-		 //sellToLab.setText(SELL_LABEL);
-		 //sellToLab.pack();
+		//Labels -------------------------------------------------------------------------
+		//buyFromLab.setText(BUY_LABEL);
+		//buyFromLab.pack();
+		//sellToLab.setText(SELL_LABEL);
+		//sellToLab.pack();
+		 
+		/* *********************************************************************************** */
+		//Positioning and sizes -----------------------------------------------------------------
+		 
+		//Main window -------------------------------------------------------------------------
+		shell.setSize(RAVEN_MAIN_WIDTH, RAVEN_MAIN_HEIGHT);
 		 
 		applyGridData();
 		shell.setSize(RAVEN_MAIN_WIDTH, RAVEN_MAIN_HEIGHT + 1); //debugging
@@ -573,7 +575,8 @@ class RavenGUI
 					public void run()
 					{	
 						//Change title to reflect the coin selected
-						shell.setText(RAVEN_MAINSHELL_TITLE + " - " + exchlist.get(0).getPriCode());
+						 
+						shell.setText(RAVEN_MAINSHELL_TITLE + " - " + (selectedCoinCode = exchlist.get(0).getPriCode()));
 						
 						//Clean lists to prepare for fresh input
 						buyFromlist.removeAll();
@@ -756,14 +759,14 @@ class RavenGUI
 		gdata[0].grabExcessVerticalSpace = true;
 		
 		//buyFromlist ---------------------------------------------
-		//gdata[1].horizontalAlignment = GridData.FILL;
-		//gdata[1].verticalSpan = 2;
+		gdata[1].horizontalAlignment = GridData.CENTER;
 		gdata[1].heightHint = 90;
+		gdata[1].widthHint = 80;
 		
 		//sellTolist ----------------------------------------------
-		///gdata[2].verticalSpan = 2;
-		//gdata[2].horizontalAlignment = GridData.FILL;
+		gdata[2].horizontalAlignment = GridData.BEGINNING;
 		gdata[2].heightHint = 90;
+		gdata[2].widthHint = 80;
 		
 		//loglist -------------------------------------------------
 		gdata[3].horizontalAlignment = GridData.FILL; //loglist
@@ -788,7 +791,9 @@ class RavenGUI
 		gdata[6].horizontalAlignment = GridData.CENTER; 
 		
 		//exchswapbut ---------------------------------------------
-		gdata[7].horizontalAlignment = GridData.CENTER;
+		gdata[7].horizontalAlignment = GridData.FILL;
+		//gdata[7].grabExcessHorizontalSpace = true;
+		gdata[7].widthHint = 35;
 		
 		//buyFromLab ----------------------------------------------
 		//gdata[8]; 
@@ -1024,8 +1029,8 @@ class RavenGUI
 		//Create columns and the column header text
 		java.util.List<String> colheads = new ArrayList<String>();
 		colheads.add("Market");
-		colheads.add(exchSell + " Sell Price");
-		colheads.add(exchBuy + " Buy Price");
+		colheads.add(exchSell + " " + selectedCoinCode + " Sell Price");
+		colheads.add(exchBuy + " " + selectedCoinCode + " Buy Price");
 		colheads.add("Difference");
 		for (int i = 0; i < colheads.size(); i++)
 		{
@@ -1334,6 +1339,7 @@ class RavenGUI
 				pw.println("bter,T");
 				pw.println("btc-e,F");
 				pw.println("okcoin,F");
+				pw.println("bitstamp,T");
 				pw.println("bitfinex,T");
 				pw.println("fxbtc,F");
 				pw.println("kraken,T");

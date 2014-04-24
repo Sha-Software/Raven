@@ -44,6 +44,8 @@ public class CoinRoster
 	
 	final String BITFINEX_URL = "https://api.bitfinex.com/v1/symbols";
 	
+	final String BITSTAMP_TICKER = "https://www.bitstamp.net/api/ticker/";
+	
 	final String KRAKEN_URL_ASSET_PAIRS = "https://api.kraken.com/0/public/AssetPairs";
 	final String KRAKEN_URL_TRADES = "https://api.kraken.com/0/public/Trades";
 	
@@ -119,6 +121,8 @@ public class CoinRoster
 				processKraken();
 			else if (_exch.contentEquals("BITFINEX"))
 				processBitfinex();
+			else if (_exch.contentEquals("BITSTAMP"))
+				processBitstamp();
 		}
 		catch (UnsupportedEncodingException uee){uee.printStackTrace();}
 		catch (IllegalStateException ise){ise.printStackTrace();}
@@ -128,6 +132,10 @@ public class CoinRoster
 		
 	}
 	
+	/*
+	 * process<Exchange>() methods and GetAllMarketInfo(<exchange>) are distinct functions in order to
+	 * separate HTML/JSON collection and raw JSON processing.
+	 */
 	private void processCryptsy() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{		
 		//Connect to crypsty and download JSON string
@@ -464,6 +472,36 @@ public class CoinRoster
 		}
 	}
 	
+	private void processBitstamp() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
+	{
+		//Connect to crypsty and download JSON string
+		RavenGUI.log("BITSTAMP: Collecting market information");
+		String JSON = GetAllMarketInfo(BITSTAMP_TICKER);
+		
+		if (JSON.length() > 0)
+		{
+			Coin tempC = null;
+			JSONObject j = new JSONObject(JSON);
+						
+			RavenGUI.log(this._exch + ": " + PROCESSING);
+			tempC = new Coin();
+			
+			//Set coin info (using literals to decrease memory accesses)
+			tempC.setExch("BITSTAMP"); 
+			tempC.setPriCode("BTC");
+			tempC.setSecCode("USD");
+			tempC.setVolume(j.getDouble("volume"));
+			tempC.setLastTrade(j.getDouble("last"));
+			tempC.setBuy(tempC.getLastTrade()); //find out cryptsy's buy/sell
+			tempC.setSell(tempC.getLastTrade()); //find out cryptsy's buy/sell
+			
+			//Add tempC to _roster so this CoinRoster object may track it properly
+			addCoin(tempC);
+			_validProcessing = true;
+		}
+		
+	}
+	
 	private void addCoin(Coin c) //------------------------------------------------------------
 	{
 		//Check if array is full (increase size by 10 if true)
@@ -698,6 +736,15 @@ public class CoinRoster
 				while ((tIn = pairsIn.readLine()) != null)
 				{
 					JSON += tIn;
+				}
+			}
+			else if (url.contains("bitstamp.net/api/ticker/"))
+			{
+				in = new BufferedReader(new InputStreamReader(apiResponse.openStream()));
+				
+				while ((temp = in.readLine()) != null)
+				{
+					JSON += temp;
 				}
 			}
 			else //-----------------------------------------------------------------------------------------------
