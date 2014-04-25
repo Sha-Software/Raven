@@ -414,11 +414,12 @@ class RavenGUI
 		exchangeUrls.put("BTC-E", "https://btc-e.com/");
 //		exchangeUrls.put("okcoin", "");
 		exchangeUrls.put("BITSTAMP", "https://www.bitstamp.net/");
-//		exchangeUrls.put("bitfinex", "");
+		exchangeUrls.put("BITFINEX", "https://www.bitfinex.com/");
+		exchangeUrls.put("MINTPAL", "https://www.mintpal.com/market");
 //		exchangeUrls.put("fxbtc", "");
 		exchangeUrls.put("KRAKEN", "https://www.kraken.com/market");
 //		exchangeUrls.put("mcxnow", "");
-//		exchangeUrls.put("poloniex", "");
+		exchangeUrls.put("POLONIEX", "https://poloniex.com/exchange");
 //		exchangeUrls.put("justcoin", "");
 //		exchangeUrls.put("vircurex", "");
 //		exchangeUrls.put("the rock trading", "");
@@ -1334,36 +1335,39 @@ class RavenGUI
 				pw.println("");
 				
 				//Exchanges
-				pw.println("cryptsy,T");
-				pw.println("coinex,T");
-				pw.println("bter,T");
-				pw.println("btc-e,F");
-				pw.println("okcoin,F");
-				pw.println("bitstamp,T");
+				pw.println("atomic trade,F");
 				pw.println("bitfinex,T");
+				pw.println("bitstamp,T");
+				pw.println("bittrex,T");
+				pw.println("btc-e,F");
+				pw.println("bter,T");
+				pw.println("crypto-trade,F");
+				pw.println("cryptonit,F");
+				pw.println("cryptsy,T");
+				pw.println("coinedup,F");
+				pw.println("coinex,T");
+				pw.println("coins-e,F");
 				pw.println("fxbtc,F");
+				pw.println("justcoin,F");
 				pw.println("kraken,T");
 				pw.println("mcxnow,F");
-				pw.println("poloniex,F");
-				pw.println("justcoin,F");
-				pw.println("vircurex,F");
+				pw.println("mintpal,T");
+				pw.println("okcoin,F");
+				pw.println("poloniex,T");
 				pw.println("the rock trading,F");
-				pw.println("crypto-trade,F");
-				pw.println("coinedup,F");
-				pw.println("bittrex,T");
-				pw.println("atomic trade,F");
-				pw.println("coins-e,F");
-				pw.println("cryptonit,F");
-				
+				pw.println("vircurex,F");
 				
 				//Reset settings currently in memory
 				exchangelist = new ArrayList<String>();
+				exchangelist.add("bitfinex");
+				exchangelist.add("bitstamp");
+				exchangelist.add("bittrex");
+				exchangelist.add("bter");
 				exchangelist.add("cryptsy");
 				exchangelist.add("coinex");
-				exchangelist.add("bter");
-				exchangelist.add("bitfinex");
 				exchangelist.add("kraken");
-				exchangelist.add("bittrex");
+				exchangelist.add("mintpal");
+				exchangelist.add("poloniex");
 				
 			}
 			catch (IOException e){e.printStackTrace();}
@@ -1517,7 +1521,7 @@ class RavenGUI
 				if (!temp.startsWith("#") && temp.length() > 0)
 				{
 					String exch = temp.substring(0, temp.indexOf(","));
-					boolean bool = temp.substring(temp.indexOf(",") + 1).contentEquals("T") ? true : false;
+					boolean bool = temp.substring(temp.indexOf(",") + 1).toUpperCase().contentEquals("T") ? true : false;
 					
 					masterexchangelist.add(exch);
 					
@@ -1789,8 +1793,7 @@ class RavenGUI
 			}
 			
 			//Process the coins
-			common.processExchanges();
-			RavenGUI.log("...done!");
+			RavenGUI.log(common.processExchanges());
 			
 			return true;
 		}

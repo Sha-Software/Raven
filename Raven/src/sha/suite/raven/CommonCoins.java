@@ -114,7 +114,7 @@ public class CommonCoins
 	/**
 	 * <p>Processes the coins tracked by each CoinRoster object commited via addExchange().</p>
 	 */
-	public void processExchanges()
+	public String processExchanges()
 	{
 		//Check if _cr has any elements in it. If not, print an error message
 		if (_cr.size() > 0)
@@ -171,12 +171,12 @@ public class CommonCoins
 			}
 			
 			//Sort coins (sorts by primary code)
-			quicksort(0, _coins.size() - 1);	
+			quicksort(0, _coins.size() - 1);
+			
+			return "UPDATE: Finished!";
 		}
 		else
-		{
-			RavenGUI.log("ERROR: No exchanges have been loaded to be processed.");
-		}
+			return "--UPDATE: processing error occured";
 	}
 	  
 	private void quicksort(int low, int high)

@@ -6,11 +6,14 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.ConnectException;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -19,6 +22,11 @@ import java.util.Map;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
 import org.apache.commons.codec.binary.Base64;
 
 import org.json.JSONArray;
@@ -32,24 +40,22 @@ import org.json.JSONObject;
 public class CoinRoster
 {
 	final String CRYPTSY_URL = "http://pubapi.cryptsy.com/api.php?method=marketdatav2";
-	
 	final String COINEX_URL = "https://coinex.pw/api/v2/trade_pairs";
-	
 	final String COINEDUP_URL = "https://api.coinedup.com/markets";
 	
 	final String BTER_PAIRS_URL = "http://data.bter.com/api/1/pairs";
-	final String BTER_TICKERS_URL = "http://data.bter.com/api/1/tickers";
-	
+	final String BTER_TICKERS_URL = "https://data.bter.com/api/1/tickers";
 	final String BTC_E_URL = "https://btc-e.com/tapi";
 	
 	final String BITFINEX_URL = "https://api.bitfinex.com/v1/symbols";
-	
 	final String BITSTAMP_TICKER = "https://www.bitstamp.net/api/ticker/";
-	
 	final String KRAKEN_URL_ASSET_PAIRS = "https://api.kraken.com/0/public/AssetPairs";
 	final String KRAKEN_URL_TRADES = "https://api.kraken.com/0/public/Trades";
 	
 	final String BITTREX_URL = "https://bittrex.com/api/v1/public/getmarketsummaries";
+	final String POLONIEX_TICKER = "https://poloniex.com/public?command=returnTicker";
+	final String MINTPAL_URL = "https://api.mintpal.com/v1/market/summary/";
+	
 	
 	final String PROCESSING = "Processing individual coin info";
 	
@@ -105,6 +111,8 @@ public class CoinRoster
 		//Convert param to uppercase and set the exchange of this CoinRoster
 		_exch = exchange.toUpperCase();
 		
+		_validProcessing = false;
+		
 		try
 		{
 			if (_exch.contentEquals("CRYPTSY"))
@@ -123,6 +131,12 @@ public class CoinRoster
 				processBitfinex();
 			else if (_exch.contentEquals("BITSTAMP"))
 				processBitstamp();
+			else if (_exch.contentEquals("POLONIEX"))
+				processPoloniex();
+			else if (_exch.contentEquals("MINTPAL"))
+				processMintpal();
+			else
+				RavenGUI.log("Exchange \"" + _exch + "\" is not supported by Raven.");
 		}
 		catch (UnsupportedEncodingException uee){uee.printStackTrace();}
 		catch (IllegalStateException ise){ise.printStackTrace();}
@@ -375,46 +389,32 @@ public class CoinRoster
 	{
 		RavenGUI.log("BITFINEX: Collecting market information");
 		String JSON = GetAllMarketInfo(BITFINEX_URL);
-		try
+		if (JSON.length() > 0)
 		{
-			if (JSON.length() > 0)
+			RavenGUI.log(this._exch + ": " + PROCESSING);
+			
+			Coin tempC = null;
+			
+			JSONArray j = new JSONArray(JSON);
+			
+			for (int i = 0; i < j.length(); i++)
 			{
-				RavenGUI.log(this._exch + ": " + PROCESSING);
+				tempC = new Coin();
+				JSONObject jt = j.getJSONObject(i);
+				String code = jt.names().get(0).toString();
+				jt = jt.getJSONObject(code);
 				
-				Coin tempC = null;
+				tempC.setExch("BITFINEX");
+				tempC.setLastTrade(jt.getDouble("last_price"));
+				tempC.setPriCode(code.substring(0, 3));
+				tempC.setSecCode(code.substring(3));
+				tempC.setVolume(jt.getDouble("volume"));
+				tempC.setBuy(tempC.getLastTrade());
+				tempC.setSell(tempC.getLastTrade());
 				
-				JSONArray j = new JSONArray(JSON);
-				
-				for (int i = 0; i < j.length(); i++)
-				{
-					tempC = new Coin();
-					JSONObject jt = j.getJSONObject(i);
-					String code = jt.names().get(0).toString();
-					jt = jt.getJSONObject(code);
-					
-					tempC.setExch("BITFINEX");
-					tempC.setLastTrade(jt.getDouble("last_price"));
-					tempC.setPriCode(code.substring(0, 3));
-					tempC.setSecCode(code.substring(3));
-					tempC.setVolume(jt.getDouble("volume"));
-					tempC.setBuy(tempC.getLastTrade());
-					tempC.setSell(tempC.getLastTrade());
-					
-					addCoin(tempC);
-				}
-				
-				
-				_validProcessing = true;
+				addCoin(tempC);
 			}
-			else
-			{
-				_validProcessing = false;
-			}
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-			RavenGUI.log("--BITTREX: Unable to collect response");
+			_validProcessing = true;
 		}
 		
 	}
@@ -502,6 +502,67 @@ public class CoinRoster
 		
 	}
 	
+	private void processPoloniex() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
+	{
+		RavenGUI.log("--POLONIEX: Functionality currently disabled");
+//		RavenGUI.log("POLONIEX: Collecting market information");
+//		String JSON = GetAllMarketInfo(POLONIEX_TICKER);
+//		
+//		if (JSON.length() > 0)
+//		{
+//			Coin tempC = null;
+//			JSONObject j = new JSONObject(JSON);
+//			JSONArray jn = j.names();
+//			JSONArray ja = j.toJSONArray(jn);
+//			
+//			for (int i = 0; i < ja.length(); i++)
+//			{
+//				tempC = new Coin();
+//				j = ja.getJSONObject(i);
+//				String code = jn.getString(i);
+//				
+//				tempC.setPriCode(code.substring(0, code.indexOf("_")));
+//				tempC.setSecCode(code.substring(code.indexOf(("_") + 1)));
+//				tempC.setVolume(j.getDouble("quoteVolume")); //baseVolume as an alt key?
+//				tempC.setLastTrade(j.getDouble("last"));
+//				tempC.setBuy(tempC.getLastTrade());
+//				tempC.setSell(tempC.getSell());
+//				
+//				addCoin(tempC);
+//			}
+//			_validProcessing = true;
+//		}
+	}
+	
+	private void processMintpal() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
+	{
+		RavenGUI.log("MINTPAL: Collecting market information");
+		String JSON = GetAllMarketInfo(MINTPAL_URL);
+		
+		if (JSON.length() > 0)
+		{
+			JSONArray ja = new JSONArray(JSON);
+			Coin tc = null;
+			RavenGUI.log(this._exch + ": " + PROCESSING);
+			
+			for (int i = 0; i < ja.length(); i++)
+			{
+				tc = new Coin();
+				JSONObject j = ja.getJSONObject(i);
+				
+				tc.setPriCode(j.getString("code"));
+				tc.setSecCode(j.getString("exchange"));
+				tc.setVolume(j.getDouble("24hvol"));
+				tc.setLastTrade(j.getDouble("last_price"));
+				tc.setBuy(tc.getLastTrade());
+				tc.setSell(tc.getLastTrade());
+				
+				addCoin(tc);
+			}
+			_validProcessing = true;
+		}
+	}
+	
 	private void addCoin(Coin c) //------------------------------------------------------------
 	{
 		//Check if array is full (increase size by 10 if true)
@@ -560,11 +621,13 @@ public class CoinRoster
 	 * Returns a String containing JSON from exchanges' API
 	 * @return
 	 */
-	
-	
 	public String GetAllMarketInfo(String url) throws UnsupportedEncodingException, IllegalStateException, NullPointerException, ConnectException//------------------------------------------
 	{
-		URL apiResponse = null;
+		/*
+		 * CTRL+F "<Exchange> CONNECT" to find a specific exchange's code for collecting JSON
+		 * eg: search "CRYPTSY CONNECT" to find CRYPTSY's collection code
+		 */
+		URL exchurl = null;
 		BufferedReader in = null;
 		
 		String JSON = "";
@@ -575,7 +638,7 @@ public class CoinRoster
 		//Construct URL
 		try
 		{
-			apiResponse = new URL(url);
+			exchurl = new URL(url);
 		}
 		catch (MalformedURLException e)
 		{
@@ -586,19 +649,17 @@ public class CoinRoster
 		try
 		{
 			charset = null;
-			if (url.contains("cryptsy")) //----------------------------------------------------------------------
+			if (url.contains(CRYPTSY_URL) || url.contains(BITSTAMP_TICKER) || url.contains(MINTPAL_URL)) //CRYPTSY CONNECT BITSTAMP CONNECT MINTPAL CONNECT
 			{
-				in = new BufferedReader(new InputStreamReader(apiResponse.openStream()));
+				in = new BufferedReader(new InputStreamReader(exchurl.openStream()));
 				
 				while ((temp = in.readLine()) != null)
-				{
 					JSON += temp;
-				}
 			}
-			else if (url.contains("btce"))
+			else if (url.contains("btce")) //BTC-E CONNECT
 			{
 			}
-			else if (url.contains("api.kraken.com/0/public/Trades"))
+			else if (url.contains("api.kraken.com/0/public/Trades")) //KRAKEN CONNECT
 			{
 				String tempJ = null;
 				//Get asset pairs from kraken
@@ -616,7 +677,7 @@ public class CoinRoster
 					
 					for (int code = 0; code < jn.length(); code++)
 					{
-						conn = apiResponse.openConnection();
+						conn = exchurl.openConnection();
 						conn.setDoOutput(true);
 						
 						conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
@@ -631,12 +692,11 @@ public class CoinRoster
 						out.close();
 						
 						//Collect the coin info and append it to the JSON String
-						BufferedReader pairIn = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+						in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
 						
-						String pairtemp = null;
-						while ((pairtemp = pairIn.readLine()) != null)
+						while ((temp = in.readLine()) != null)
 						{
-							JSONObject jt = new JSONObject(pairtemp);
+							JSONObject jt = new JSONObject(temp);
 							
 							if (jt.getJSONArray("error").length() < 1)
 							{
@@ -660,41 +720,39 @@ public class CoinRoster
 					}
 				}
 			}
-			else if (url.contains("api.kraken.com/0/public/AssetPairs"))
+			else if (url.contains("api.kraken.com/0/public/AssetPairs")) //KRAKEN CONNECT
 			{
-				URLConnection conn = apiResponse.openConnection();
+				URLConnection conn = exchurl.openConnection();
 				conn.setDoOutput(true);
 				
 				conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
 				conn.setRequestProperty("Accept-Charset", "utf-8");
 				
-				BufferedReader assetIn = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+				in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
 				
-				if (assetIn != null)
+				if (in != null)
 				{
-					String inTemp = null;
-					while ((inTemp = assetIn.readLine()) != null)
-						JSON += inTemp;
-					assetIn.close();
+					while ((temp = in.readLine()) != null)
+						JSON += temp;
+					in.close();
 				}
 			}
-			else if (url.contains("bitfinex"))
+			else if (url.contains("bitfinex")) //BITFINEX CONNECT
 			{
 				//   https://api.bitfinex.com/v1
 				//   /book/:symbol - get full orderbook
 				
-				URLConnection conn = apiResponse.openConnection();
+				URLConnection conn = exchurl.openConnection();
 				conn.setDoOutput(true);
 				conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
 				conn.setRequestProperty("Accept-Charset", "utf-8");
 				
-				BufferedReader pairsIn = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+				in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
 				
-				String tpair = "";
 				String pairs = "";
-				while ((tpair = pairsIn.readLine()) != null)
+				while ((temp = in.readLine()) != null)
 				{
-					pairs += tpair;
+					pairs += temp;
 				}
 				
 				JSONArray j = new JSONArray(pairs);
@@ -708,11 +766,11 @@ public class CoinRoster
 					conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
 					conn.setRequestProperty("Accept-Charset", "utf-8");
 										
-					pairsIn = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-					tpair = null;
-					while ((tpair = pairsIn.readLine()) != null)
+					in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+					
+					while ((temp = in.readLine()) != null)
 					{
-						JSON += "{\"" + j.get(i) + "\":" + tpair + "},";
+						JSON += "{\"" + j.get(i) + "\":" + temp + "},";
 					}
 					
 				}
@@ -723,36 +781,53 @@ public class CoinRoster
 					JSON += "}]"; //close JSON syntax
 				}
 			}
-			else if (url.contains("bittrex.com/api/v1/public/getmarketsummaries"))
+			else if (url.contains("bittrex.com/api/v1/public/getmarketsummaries")) //BITTREX CONNECT
 			{
-				URLConnection conn = apiResponse.openConnection();
+				URLConnection conn = exchurl.openConnection();
 				
 				conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
 				conn.setRequestProperty("Accept-Charset", "utf-8");
 				
-				BufferedReader pairsIn = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-				
-				String tIn = null;
-				while ((tIn = pairsIn.readLine()) != null)
-				{
-					JSON += tIn;
-				}
-			}
-			else if (url.contains("bitstamp.net/api/ticker/"))
-			{
-				in = new BufferedReader(new InputStreamReader(apiResponse.openStream()));
+				in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
 				
 				while ((temp = in.readLine()) != null)
 				{
 					JSON += temp;
 				}
 			}
-			else //-----------------------------------------------------------------------------------------------
+			else if (url.contains(POLONIEX_TICKER)) //POLONIEX CONNECT
+			{
+				HttpURLConnection conn = (HttpsURLConnection)exchurl.openConnection();
+				conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
+				conn.setRequestProperty("Accept-Charset", "utf-8");
+				conn.setRequestProperty("Referer", "https://poloniex.com/api");
+				
+				// Create a trust manager that does not validate certificate chains
+				TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager()
+				{
+				    public X509Certificate[] getAcceptedIssuers(){return null;}
+				    public void checkClientTrusted(X509Certificate[] certs, String authType){}
+				    public void checkServerTrusted(X509Certificate[] certs, String authType){}
+				}};
+
+				// Install the all-trusting trust manager
+				try {
+				    SSLContext sc = SSLContext.getInstance("TLS");
+				    sc.init(null, trustAllCerts, new SecureRandom());
+				    HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+				} catch (Exception e) {}
+				
+				in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+				
+				while((temp = in.readLine()) != null)
+					JSON += temp;
+			}
+			else if (url.contains(COINEX_URL) || url.contains(BTER_TICKERS_URL)) //COINEX CONNECT, BTER CONNECT
 			{
 				URLConnection conn = null;
 				
 				//Open connection to web page
-				conn = apiResponse.openConnection();
+				conn = exchurl.openConnection();
 				
 				conn.setDoOutput(true); //Triggers post
 				
@@ -764,8 +839,7 @@ public class CoinRoster
 				
 				
 				//Collect the type of HTML content so we can decode it
-				contentType = conn.getHeaderField("Content-Type");
-				//
+				/*contentType = conn.getHeaderField("Content-Type");
 				for (String param : contentType.replace(" ", "").split(";"))
 				{
 				    if (param.startsWith("charset=")) 
@@ -773,7 +847,7 @@ public class CoinRoster
 				        charset = param.split("=", 2)[1];
 				        break;
 				    }
-				}
+				}*/
 				
 				//if (charset != null)
 				{
@@ -789,12 +863,13 @@ public class CoinRoster
 		
 		catch (IOException ioe)
 		{
-			if (ioe.getMessage().contains("403 for URL"))
+			if (ioe.getMessage().toUpperCase().contains("403 FOR URL"))
 			{
-				RavenGUI.log("UPDATE: 403 error");
+				RavenGUI.log("--" + _exch + ": HTTP 403 Response (Forbidden)");
 			}
 			else
 			{
+				RavenGUI.log("--" + _exch + ": " + ioe.getMessage());
 				ioe.printStackTrace();
 			}
 		}
