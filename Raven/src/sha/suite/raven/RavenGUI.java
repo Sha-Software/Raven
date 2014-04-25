@@ -133,6 +133,7 @@ class RavenGUI
 	 * ************************************************************************************************** */
 	String [] coinnames = null;
 	int [] commonsizes = null;
+	int [] exchcount = null;
 	Coin [] exchcoins = null;
 	CommonCoins common = null;
 	
@@ -190,6 +191,8 @@ class RavenGUI
 				//Get the list of unique coins and assign them to coinlist
 				coinnames = common.getCoinNames();
 				commonsizes = common.commonSizes();
+				exchcount = common.getAllUniqueExchCount();
+				
 				display.asyncExec(new Runnable()
 				{
 					public void run()
@@ -198,7 +201,7 @@ class RavenGUI
 						coinlist.removeAll();
 						
 						//Add newly processed coins to the list
-						updateCoinList(coinnames, commonsizes);
+						updateCoinList(coinnames, commonsizes, exchcount);
 						
 						//Change button text back to default to provide visual feedback
 						updatebut.setText(BUTTON_DEFAULT_MSG);
@@ -1082,11 +1085,11 @@ class RavenGUI
 	 * Non-GUI methods																						   *
 	 * ******************************************************************************************************* */
 	
-	private void updateCoinList(String [] coins, int [] sizes)
+	private void updateCoinList(String [] coins, int [] numcoins, int [] numexchs)
 	{
 		for (int i = 0; i < coins.length; i++)
 		{
-			coinlist.add(coins[i] + " (" + sizes[i] + ")");
+			coinlist.add(coins[i] + " (" + numcoins[i] + "," + numexchs[i] + ")");
 		}
 	}
 	

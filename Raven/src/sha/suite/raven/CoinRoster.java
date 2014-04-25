@@ -549,7 +549,7 @@ public class CoinRoster
 			{
 				tc = new Coin();
 				JSONObject j = ja.getJSONObject(i);
-				
+				tc.setExch(_exch);
 				tc.setPriCode(j.getString("code"));
 				tc.setSecCode(j.getString("exchange"));
 				tc.setVolume(j.getDouble("24hvol"));

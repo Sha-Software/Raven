@@ -83,6 +83,47 @@ public class CommonCoins
 	}
 	
 	/**
+	 * <p>Returns an integer array containing a unique count of exchanges per coin.</p>
+	 * @return
+	 */
+	public int [] getAllUniqueExchCount()
+	{
+		int [] out = new int[_coins.size()];
+		List<String> temp = new ArrayList<String>();
+		
+		//Loop through each unique coin
+		for (int ucoin = 0; ucoin < out.length; ucoin++)
+		{
+			//Loop through each common coin
+			for (int ccoin = 0; ccoin < _coins.get(ucoin).size(); ccoin++)
+			{
+				boolean valid = true;
+				String etemp = _coins.get(ucoin).get(ccoin).getExchange();
+				//Test each common coin against what we've already 
+				//processed to find unique exchanges and count them
+				for (int exch = 0; exch < temp.size(); exch++)
+				{
+					if (temp.get(exch).contentEquals(etemp))
+						valid = false;
+					
+					etemp = _coins.get(ucoin).get(ccoin).getExchange();
+				} //end exch loop
+				if (valid)
+				{
+					//Add exchange to preserve its uniqueness and
+					//increment counting array index at ucoin
+					temp.add(etemp);
+					out[ucoin]++;
+				}
+			} //end ccoin loop
+			
+			//Clear list for next coin
+			temp = new ArrayList<String>();
+		} //end ucoin loop
+		return out;
+	}
+	
+	/**
 	 * <p>Returns the number of occurrences in exchanges a coin is in.</p>
 	 * @param coin
 	 * @return
