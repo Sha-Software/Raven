@@ -30,6 +30,7 @@ import javax.net.ssl.X509TrustManager;
 import org.apache.commons.codec.binary.Base64;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 /*
@@ -55,8 +56,10 @@ public class CoinRoster
 	final String BITTREX_URL = "https://bittrex.com/api/v1/public/getmarketsummaries";
 	final String POLONIEX_TICKER = "https://poloniex.com/public?command=returnTicker";
 	final String MINTPAL_URL = "https://api.mintpal.com/v1/market/summary/";
+	final String PRELUDE_MARKET_BTC = "https://api.prelude.io/statistics/";
+	final String PRELUDE_MARKET_USD = "https://api.prelude.io/statistics-usd/";
 	
-	
+	final String COLLECTING_STRING = ": Collecting market information";
 	final String PROCESSING = "Processing individual coin info";
 	
 	/**
@@ -135,6 +138,8 @@ public class CoinRoster
 				processPoloniex();
 			else if (_exch.contentEquals("MINTPAL"))
 				processMintpal();
+			else if (_exch.contentEquals("PRELUDE"))
+				processPrelude();
 			else
 				RavenGUI.log("Exchange \"" + _exch + "\" is not supported by Raven.");
 		}
@@ -244,18 +249,21 @@ public class CoinRoster
 		}
 	}
 	
+	//disabled
 	private void processCoinedup() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
-		RavenGUI.log("COINEDUP: Collecting market information");
-		String JSON = GetAllMarketInfo(COINEDUP_URL);
-		RavenGUI.log(JSON);
-		//JSONObject j = new JSONObject(JSON);
-		//j = j.getJSONObject("trade_pairs");
+		RavenGUI.log("--COINEDUP: Functionality currently disabled");
+//		RavenGUI.log("COINEDUP: Collecting market information");
+//		String JSON = GetAllMarketInfo(COINEDUP_URL);
+//		if (JSON.length() > 0)
+//		{
+//			
+//		}
 	}
 	
 	private void processBter() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
-		RavenGUI.log("BTER: Collecting market information");
+		RavenGUI.log(_exch + COLLECTING_STRING);
 		String JSON_tickers = GetAllMarketInfo(BTER_TICKERS_URL);
 		try
 		{
@@ -302,7 +310,7 @@ public class CoinRoster
 	
 	private void processBittrex() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
-		RavenGUI.log("BITTREX: Collecting market information");
+		RavenGUI.log(_exch + COLLECTING_STRING);
 		String JSON = GetAllMarketInfo(BITTREX_URL);
 		try
 		{
@@ -351,7 +359,7 @@ public class CoinRoster
 	
 	private void processBtc_e() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
-		RavenGUI.log("BTC-E: Collecting market information");
+		RavenGUI.log(_exch + COLLECTING_STRING);
 		
 		String JSON = GetAllMarketInfo(BTC_E_URL);
 		try
@@ -382,12 +390,12 @@ public class CoinRoster
 	
 	private void processOKCoin()
 	{
-		
+		RavenGUI.log(_exch + COLLECTING_STRING);
 	}
 	
 	private void processBitfinex() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
-		RavenGUI.log("BITFINEX: Collecting market information");
+		RavenGUI.log(_exch + COLLECTING_STRING);
 		String JSON = GetAllMarketInfo(BITFINEX_URL);
 		if (JSON.length() > 0)
 		{
@@ -421,7 +429,7 @@ public class CoinRoster
 	
 	private void processKraken() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
-		RavenGUI.log("KRAKEN: Collecting market information");
+		RavenGUI.log(_exch + COLLECTING_STRING);
 		
 		String JSON = GetAllMarketInfo(KRAKEN_URL_TRADES);
 		try
@@ -475,7 +483,7 @@ public class CoinRoster
 	private void processBitstamp() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
 		//Connect to crypsty and download JSON string
-		RavenGUI.log("BITSTAMP: Collecting market information");
+		RavenGUI.log(_exch + COLLECTING_STRING);
 		String JSON = GetAllMarketInfo(BITSTAMP_TICKER);
 		
 		if (JSON.length() > 0)
@@ -502,10 +510,11 @@ public class CoinRoster
 		
 	}
 	
+	//disabled
 	private void processPoloniex() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
 		RavenGUI.log("--POLONIEX: Functionality currently disabled");
-//		RavenGUI.log("POLONIEX: Collecting market information");
+//		RavenGUI.log(_exch + COLLECTING_STRING);
 //		String JSON = GetAllMarketInfo(POLONIEX_TICKER);
 //		
 //		if (JSON.length() > 0)
@@ -536,7 +545,7 @@ public class CoinRoster
 	
 	private void processMintpal() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
-		RavenGUI.log("MINTPAL: Collecting market information");
+		RavenGUI.log(_exch + COLLECTING_STRING);
 		String JSON = GetAllMarketInfo(MINTPAL_URL);
 		
 		if (JSON.length() > 0)
@@ -554,6 +563,75 @@ public class CoinRoster
 				tc.setSecCode(j.getString("exchange"));
 				tc.setVolume(j.getDouble("24hvol"));
 				tc.setLastTrade(j.getDouble("last_price"));
+				tc.setBuy(tc.getLastTrade());
+				tc.setSell(tc.getLastTrade());
+				
+				addCoin(tc);
+			}
+			_validProcessing = true;
+		}
+	}
+	
+	private void processPrelude() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
+	{
+		RavenGUI.log(_exch + COLLECTING_STRING);
+		String BTCJSON = GetAllMarketInfo(PRELUDE_MARKET_BTC);
+		
+		if (BTCJSON.length() > 0)
+		{
+			JSONArray ja = new JSONArray(BTCJSON);
+			Coin tc = null;
+			RavenGUI.log(this._exch + ": " + PROCESSING);
+			
+			for (int i = 0; i < ja.length(); i++)
+			{
+				tc = new Coin();
+				JSONObject j = ja.getJSONObject(i);
+				String code = j.names().getString(0).toString();
+				j = j.getJSONObject(code);
+				
+				tc.setExch(_exch);
+				tc.setPriCode(code);
+				tc.setSecCode("BTC");
+				
+				String volume = j.getString("volume");
+				//Remove each comma if they exist
+				while (volume.indexOf(",") != -1)
+					volume = volume.substring(0, volume.indexOf(",")) + volume.substring(volume.indexOf(",") + 1);
+				
+				tc.setVolume(Double.parseDouble(volume));
+				tc.setLastTrade((j.getDouble("high") + j.getDouble("low")) / 2);
+				tc.setBuy(tc.getLastTrade());
+				tc.setSell(tc.getLastTrade());
+				
+				addCoin(tc);
+			}
+			_validProcessing = true;
+		}
+		
+		String USDJSON = GetAllMarketInfo(PRELUDE_MARKET_USD);
+		if (USDJSON.length() > 0)
+		{
+			JSONArray ja = new JSONArray(USDJSON);
+			Coin tc = null;
+			RavenGUI.log(this._exch + ": " + PROCESSING);
+			
+			for (int i = 0; i < ja.length(); i++)
+			{
+				tc = new Coin();
+				JSONObject j = ja.getJSONObject(i);
+				
+				tc.setExch(_exch);
+				tc.setPriCode(j.getString(j.names().get(0).toString()));
+				tc.setSecCode("USD");
+
+				String volume = j.getString("volume");
+				//Remove each comma if they exist
+				while (volume.indexOf(",") != -1)
+					volume = volume.substring(0, volume.indexOf(",")) + volume.substring(volume.indexOf(",") + 1);
+				
+				tc.setVolume(Double.parseDouble(volume));
+				tc.setLastTrade((j.getDouble("high") + j.getDouble("low")) / 2);
 				tc.setBuy(tc.getLastTrade());
 				tc.setSell(tc.getLastTrade());
 				
@@ -781,7 +859,7 @@ public class CoinRoster
 					JSON += "}]"; //close JSON syntax
 				}
 			}
-			else if (url.contains("bittrex.com/api/v1/public/getmarketsummaries")) //BITTREX CONNECT
+			else if (url.contains(BITTREX_URL)) //BITTREX CONNECT
 			{
 				URLConnection conn = exchurl.openConnection();
 				
@@ -828,37 +906,105 @@ public class CoinRoster
 				
 				//Open connection to web page
 				conn = exchurl.openConnection();
-				
-				conn.setDoOutput(true); //Triggers post
-				
-				//Set HTTP request headers to fool coinex/bter into thinking we're Firefox (they reject our request otherwise)
 
 				conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
 				conn.setRequestProperty("Accept-Charset", "utf-8");
-				//conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded;charset=");
-				
-				
-				//Collect the type of HTML content so we can decode it
-				/*contentType = conn.getHeaderField("Content-Type");
-				for (String param : contentType.replace(" ", "").split(";"))
+				in = new BufferedReader(new InputStreamReader(conn.getInputStream()/*, charset*/));
+				for (String line; (line = in.readLine()) != null;)
 				{
-				    if (param.startsWith("charset=")) 
-				    {
-				        charset = param.split("=", 2)[1];
-				        break;
-				    }
-				}*/
+					JSON += line;
+				}
+			}
+			else if (url.contains(PRELUDE_MARKET_BTC)) //PRELUDE CONNECT
+			{
+				String [] tickers = {"888", "AUR", "BC", "DGB", "DGC", "DOGE", "DRK", "EMC2", "LTC", "MAX", "MEOW", "MINT", "PPC", "VTC"};
 				
-				//if (charset != null)
+				
+				//prep JSON as a JSONArray
+				JSON = "[";
+				for (int ticker = 0; ticker < tickers.length; ticker++)
 				{
+					URLConnection conn = new URL(PRELUDE_MARKET_BTC + tickers[ticker]).openConnection();
+					
+					conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
+					conn.setRequestProperty("Accept-Charset", "utf-8");
 					in = new BufferedReader(new InputStreamReader(conn.getInputStream()/*, charset*/));
+				
+					//Collect server response
 					for (String line; (line = in.readLine()) != null;)
 					{
-						JSON += line;
+						JSONObject j = new JSONObject(line);
+						JSONArray ja = null;
+						boolean array = false;
+						
+						try
+						{
+							j = j.getJSONObject("statistics");
+						}
+						catch (JSONException je)
+						{
+							ja = j.getJSONArray("statistics");
+							array = true;
+						}
+						
+						if (!array)
+						{
+							JSON += "{\"" + tickers[ticker] + "\":" + j.toString() + "},";
+						}
+							
+						else
+							if (ja.length() > 0) 
+								JSON += "{\"" + tickers[ticker] + "\":" + ja.toString() + "},";
 					}
 				}
+				JSON = JSON.substring(0, JSON.length() - 2);
+				JSON += "}]"; //close JSONArray
+			}
+			else if (url.contains(PRELUDE_MARKET_USD)) //PRELUDE CONNECT
+			{
+				String [] tickers = {"888", "AUR", "BC", "DGB", "DGC", "DOGE", "DRK", "EMC2", "LTC", "MAX", "MEOW", "MINT", "PPC", "VTC"};
 				
-			} //end of else
+				
+				//prep JSON as a JSONArray
+				JSON = "[";
+				for (int ticker = 0; ticker < tickers.length; ticker++)
+				{
+					URLConnection conn = new URL(PRELUDE_MARKET_USD + tickers[ticker]).openConnection();
+					
+					conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
+					conn.setRequestProperty("Accept-Charset", "utf-8");
+					in = new BufferedReader(new InputStreamReader(conn.getInputStream()/*, charset*/));
+				
+					//Collect server response
+					for (String line; (line = in.readLine()) != null;)
+					{
+						JSONObject j = new JSONObject(line);
+						JSONArray ja = null;
+						boolean array = false;
+						
+						try
+						{
+							j = j.getJSONObject("statistics");
+						}
+						catch (JSONException je)
+						{
+							ja = j.getJSONArray("statistics");
+							array = true;
+						}
+						
+						if (!array)
+						{
+							JSON += "{\"" + tickers[ticker] + "\":" + j.toString() + "},";
+						}
+							
+						else
+							if (ja.length() > 0) 
+								JSON += "{\"" + tickers[ticker] + "\":" + ja.toString() + "},";
+					}
+				}
+				JSON = JSON.substring(0, JSON.length() - 2);
+				JSON += "}]"; //close JSONArray
+			}
 		}
 		
 		catch (IOException ioe)

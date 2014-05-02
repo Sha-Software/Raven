@@ -9,6 +9,8 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.DateFormat;
@@ -22,14 +24,13 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
-import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Combo;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Group;
@@ -45,12 +46,15 @@ import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
+import org.eclipse.swt.widgets.ToolBar;
+import org.eclipse.swt.widgets.ToolItem;
+import org.swtchart.Chart;
 
 //Build GUI according to user settings (GUI thread)
 class RavenGUI
 {
 	/* ************************************************************************************************** *
-	 * GUI Variables 																					  *
+	 * GUI Controls    																					  *
 	 * ************************************************************************************************** */
 	static Display display;
 	Shell shell;
@@ -59,12 +63,17 @@ class RavenGUI
 	List buyFromlist = null;
 	List sellTolist = null;
 	static List loglist = null;
+	List chartlist = null;
 	
 	Table exchtable = null;
 	
 	Button updatebut = null;
 	Button settingsbut = null;
 	Button exchswapbut = null;
+	
+	Composite chartcomp = null;
+	Composite buySellSelComp = null;
+	Chart mainchart = null;
 	
 	Label buyFromLab = null;
 	Label sellToLab = null;
@@ -82,50 +91,58 @@ class RavenGUI
 	MenuItem resetExchangesItem = null;
 	MenuItem resetAllItem = null;
 	
+	ToolBar charttool = null;
+	
+	ToolItem coindistro = null; 
+	ToolItem buyspectrum = null;
+	ToolItem sellspectrum = null;
+	ToolItem priceovertime = null;
+	
 	/* ************************************************************************************************** *
 	 * GUI Positioning Constants 																		  *
 	 * ************************************************************************************************** */
 	
 	//Shells -------------------------------------------------------------
-	final private int RAVEN_MAIN_WIDTH = 555;
-	final private int RAVEN_MAIN_HEIGHT = 500;
+	final private int RAVEN_MAIN_WIDTH = 800;
+	final private int RAVEN_MAIN_HEIGHT = 650;
 	
 	final private int RAVEN_SETTINGS_WIDTH = 485;
 	final private int RAVEN_SETTINGS_HEIGHT = 270;
 	
 	//Layouts ------------------------------------------------------------
 	GridLayout mainlayout = null;
-	GridData [] gdata = null;
-	
-	//Comparison table ---------------------------------------------------
-	final private Rectangle COMPARISON_TABLE_BOUNDS = new Rectangle(120, 160, 410, 200);
-	
-	//Lists -----------------------------------------------------------------
-	final private Rectangle UNIQUE_COINS_BOUNDS = new Rectangle(10,10,100,350);
-	final private Rectangle BUY_FROM_BOUNDS = new Rectangle(157,30,120,120);
-	final private Rectangle SELL_TO_BOUNDS = new Rectangle(357,30,120,120);
-	final private Rectangle LOG_BOUNDS = new Rectangle(120,370,410,70);
-	
-	//Buttons
-	final private Rectangle UPDATE_BOUNDS = new Rectangle(10, 370, 100, 30);
-	final private Rectangle SETTINGS_BOUNDS = new Rectangle(10, 410, 100, 30);
-	final private Rectangle SWAP_EXCHANGE_SELECTION_BOUNDS = new Rectangle(300, 70, 35, 30);
+	GridLayout chartcomplayout = null;
+	GridLayout buySellSelLayout = null;
+	GridData [] maindata = null;
+	GridData [] tablechartdata = null;
+	GridData [] buyselldata = null;
+	final int MAINFORM_COUNT = 6;
+	final int TABLECHART_COUNT = 2;
+	final int BUYSELL_COUNT = 3;
 		
-	//Labels
-	final private Point BUY_FROM_POS = new Point(BUY_FROM_BOUNDS.x, BUY_FROM_BOUNDS.y - 15);
-	final private Point SELL_TO_POS = new Point(SELL_TO_BOUNDS.x, SELL_TO_BOUNDS.y - 15);
+	
+	/* ************************************************************************************************** *
+	 * GUI Global Listeners 																			  *
+	 * ************************************************************************************************** */
+	
+	Listener settings_listener = null;
+	Listener generate_full_csv_report = null;
+	Listener open_popup_listener = null;
+	Listener resetConfigListener = null;
+	Listener resetExchangesListener = null;
+	Listener resetAllListener = null;
 	
 	/* ************************************************************************************************** *
 	 * GUI Dialogue Constants 																			  *
 	 * ************************************************************************************************** */
 	
-	final private String BUY_LABEL = "Buy from (lower = better)";
-	final private String SELL_LABEL = "Sell to (higher = better)";
-	final private String BUTTON_DEFAULT_MSG = "Update";
-	final private String BUTTON_UPDATE_MSG = "Updating...";
-	final private String LABELS_FONT = "Arial";
-	final private String DECIMAL_FORMATTING = "#0.0000000";
-	final private String RAVEN_MAINSHELL_TITLE = "Raven";
+	final String BUY_LABEL = "Buy from (lower = better)";
+	final String SELL_LABEL = "Sell to (higher = better)";
+	final String BUTTON_DEFAULT_MSG = "Update";
+	final String BUTTON_UPDATE_MSG = "Updating...";
+	final String LABELS_FONT = "Arial";
+	final String DECIMAL_FORMATTING = "#0.0000000";
+	final String RAVEN_MAINSHELL_TITLE = "Raven";
 	
 	
 	/* ************************************************************************************************** *
@@ -140,10 +157,21 @@ class RavenGUI
 	java.util.List<Coin> exchlist = null;
 	java.util.List<String> marketNames = null;
 	java.util.List<String> exchangeNames = null;
+	
+	java.util.List<String> buyFromNames = null;
+	java.util.List<String> sellToNames = null;
+	
 	Map<String,String> exchangeUrls = null;
 	
 	boolean safeToUseCoinlist = true;
 	String selectedCoinCode = "";
+	
+	String chartfunction = "coindistro"; //holds which method gets called for the chart when a coin is selected
+	Map<String, Method> chartmethod = null;
+	final String COIN_DISTRO = "coindistro";
+	final String BUY_SPEC = "buyspectrum";
+	final String SELL_SPEC = "sellspectrum";
+	final String PRICE_TIME = "priceovertime";
 	
 	/* ************************************************************************************************** *
 	 * Custom User Settings 																			  *
@@ -338,67 +366,6 @@ class RavenGUI
 		public void setPopup(String popup) {_popup = popup;}
 	}
 	
-	/* ************************************************************************************************** *
-	 * Menu bar Listeners 																				  *
-	 * ************************************************************************************************** */
-	
-	Listener settings_listener = new Listener() 
-	{
-		@Override
-		public void handleEvent(Event arg0)
-		{
-			buildSettingsMenuGUI(display, shell.getBounds().x, shell.getBounds().y);
-		}
-	};
-	
-	Listener generate_full_csv_report = new Listener()
-	{
-		@Override
-		public void handleEvent(Event arg0)
-		{
-			generateFullCSVReport();
-		}
-	};
-	
-	Listener open_popup_listener = new Listener()
-	{
-		@Override
-		public void handleEvent(Event arg0)
-		{
-			(popup = new Popup("chat")).start();
-		}
-	};
-	
-	Listener resetConfigListener = new Listener () 
-	{
-		@Override
-		public void handleEvent(Event arg0)
-		{
-			resetDefaults(0);
-			log("DEFAULTS: config.txt has been reset");
-		}
-	};
-	
-	Listener resetExchangesListener = new Listener () 
-	{
-		@Override
-		public void handleEvent(Event arg0)
-		{
-			resetDefaults(1);
-			log("DEFAULTS: exchanges.txt has been reset");
-		}
-	};
-	
-	Listener resetAllListener = new Listener() 
-	{
-		@Override
-		public void handleEvent(Event arg0)
-		{
-			resetDefaults(0);
-			resetDefaults(1);
-			log("DEFAULTS: config.txt & exchanges.txt have been reset");
-		}
-	};
 	
 	/* ************************************************************************************************** *
 	 * Constructor		 																				  *
@@ -409,7 +376,24 @@ class RavenGUI
 		exchangelist = new ArrayList<String>();
 		masterexchangelist = new ArrayList<String>();
 		requestedExchs = new HashMap<String,Boolean>();
-
+		
+		chartmethod = new HashMap<String, Method>();
+		try
+		{
+			chartmethod.put(COIN_DISTRO, RavenGUI.class.getMethod(COIN_DISTRO));
+			chartmethod.put(BUY_SPEC, RavenGUI.class.getMethod(BUY_SPEC));
+			chartmethod.put(SELL_SPEC, RavenGUI.class.getMethod(SELL_SPEC));
+			chartmethod.put(PRICE_TIME, RavenGUI.class.getMethod(PRICE_TIME));
+		}
+		catch (NoSuchMethodException e)
+		{
+			e.printStackTrace();
+		}
+		catch (SecurityException e)
+		{
+			e.printStackTrace();
+		}
+		
 		exchangeUrls = new HashMap<String,String>();
 		exchangeUrls.put("CRYPTSY", "https://www.cryptsy.com/");
 		exchangeUrls.put("COINEX", "http://coinex.pw/");
@@ -423,7 +407,7 @@ class RavenGUI
 		exchangeUrls.put("KRAKEN", "https://www.kraken.com/market");
 //		exchangeUrls.put("mcxnow", "");
 		exchangeUrls.put("POLONIEX", "https://poloniex.com/exchange");
-//		exchangeUrls.put("justcoin", "");
+		exchangeUrls.put("PRELUDE", "https://prelude.io/");
 //		exchangeUrls.put("vircurex", "");
 //		exchangeUrls.put("the rock trading", "");
 //		exchangeUrls.put("crypto-trade", "");
@@ -433,8 +417,14 @@ class RavenGUI
 //		exchangeUrls.put("coins-e", "");
 //		exchangeUrls.put("cryptonit", "");
 		
-		gdata = new GridData[10];
-		for (int i = 0; i < 10; i++) gdata[i] = new GridData();
+		maindata = new GridData[MAINFORM_COUNT];
+		for (int i = 0; i < MAINFORM_COUNT; i++) maindata[i] = new GridData();
+		
+		tablechartdata = new GridData[TABLECHART_COUNT];
+		for (int i = 0; i < TABLECHART_COUNT; i++) tablechartdata[i] = new GridData();
+		
+		buyselldata = new GridData[BUYSELL_COUNT];
+		for (int i = 0; i < BUYSELL_COUNT; i++) buyselldata[i] = new GridData();
 		
 		popup = new Popup();
 		popup.setPopup("chat");
@@ -453,18 +443,6 @@ class RavenGUI
 		 buildAndPositionControls();
 		 loadUserSettings();
 		 buildAndAllocateListeners();
-		 
-		 //Set up Shell's Close event handler
-		 shell.addListener(SWT.Close, new Listener() 
-		 {
-			@SuppressWarnings("deprecation")
-			@Override
-			public void handleEvent(Event arg0)
-			{
-				if (updateTimer != null) updateTimer.cancel();
-				if (!safeToUseCoinlist) ep.stop();
-			}
-		 });
 		 
 		 shell.open();
 		 
@@ -486,24 +464,44 @@ class RavenGUI
  	 
 		//Main window -------------------------------------------------------------------------
 		display = new Display();
-		shell = new Shell(display, SWT.SHELL_TRIM /*& ~SWT.RESIZE & ~SWT.MAX*/); //prevent resizing of window
+		shell = new Shell(display, SWT.SHELL_TRIM);
 		
 		buildMenuBarItems();
+		buildToolBar();
 		
 		//Layouts ------------------------------------------------------------------------
 		mainlayout = new GridLayout();
-		mainlayout.numColumns = 4;
+		mainlayout.numColumns = 3;
 		
 		shell.setLayout(mainlayout);
 		setGridDataForControls(false);
 		
 		coinlist = new List(shell, SWT.BORDER | SWT.V_SCROLL);
+		
+		//Set up buy and sell selection lists with their composite --------------------------------------------
+		buySellSelComp = new Composite(shell, SWT.NONE);
+		buySellSelLayout = new GridLayout();
+		buySellSelLayout.numColumns = 3;
+		buySellSelComp.setLayout(buySellSelLayout);
+		
 		//buyFromLab = new Label(shell, SWT.NONE);
-		buyFromlist = new List(shell, SWT.BORDER | SWT.V_SCROLL);
-		exchswapbut = new Button(shell, SWT.PUSH);
+		buyFromlist = new List(buySellSelComp, SWT.BORDER | SWT.V_SCROLL);
+		exchswapbut = new Button(buySellSelComp, SWT.PUSH);
 		//sellToLab = new Label(shell, SWT.NONE);
-		sellTolist = new List(shell, SWT.BORDER | SWT.V_SCROLL);
-		exchtable = new Table(shell, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION);
+		sellTolist = new List(buySellSelComp, SWT.BORDER | SWT.V_SCROLL);
+		
+		
+		//Set up main table and chart with their composite ---------------------------------------------------
+		chartcomp = new Composite(shell, SWT.NONE);
+		chartcomplayout = new GridLayout();
+		chartcomplayout.numColumns = 2;
+		
+		chartcomplayout.makeColumnsEqualWidth = true;
+		chartcomp.setLayout(chartcomplayout);
+		exchtable = new Table(chartcomp, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION);
+		mainchart = new Chart(chartcomp, SWT.NONE);
+		
+		//Set up controlling buttons and the loglist ---------------------------------------------------------
 		updatebut = new Button(shell, SWT.PUSH);
 		settingsbut = new Button(shell, SWT.PUSH);
 		loglist = new List(shell, SWT.BORDER | SWT.V_SCROLL);
@@ -514,6 +512,7 @@ class RavenGUI
 		shell.setText(RAVEN_MAINSHELL_TITLE);
 		 
 		//Lists -------------------------------------------------------------------------
+		coinlist.setToolTipText("Format: COIN (# of coins found, # of exchanges found in)");
 		buyFromlist.setToolTipText("Double-click an entry to open that exchange's website");
 		sellTolist.setToolTipText("Double-click an entry to open that exchange's website");
 		 
@@ -534,12 +533,13 @@ class RavenGUI
 		exchswapbut.setFont(butFont);
 		exchswapbut.setText("<~>");
 		exchswapbut.setToolTipText("Swaps the selection of exchanges");
+		
 		 
 		//Labels -------------------------------------------------------------------------
-		//buyFromLab.setText(BUY_LABEL);
-		//buyFromLab.pack();
-		//sellToLab.setText(SELL_LABEL);
-		//sellToLab.pack();
+//		buyFromLab.setText(BUY_LABEL);
+//		buyFromLab.pack();
+//		sellToLab.setText(SELL_LABEL);
+//		sellToLab.pack();
 		 
 		/* *********************************************************************************** */
 		//Positioning and sizes -----------------------------------------------------------------
@@ -548,8 +548,9 @@ class RavenGUI
 		shell.setSize(RAVEN_MAIN_WIDTH, RAVEN_MAIN_HEIGHT);
 		 
 		applyGridData();
-		shell.setSize(RAVEN_MAIN_WIDTH, RAVEN_MAIN_HEIGHT + 1); //debugging
-		shell.setSize(RAVEN_MAIN_WIDTH, RAVEN_MAIN_HEIGHT - 1); //debugging
+		
+		//Make the GridLayout properly size and position controls
+		shell.layout(true, true);
 	}
 	
 	/**
@@ -598,7 +599,6 @@ class RavenGUI
 			}
 		 }); //end coinlist Selection event
 	
-		 
 		 buyFromlist.addListener(SWT.Selection, new Listener () //Single click
 		 {
 			@Override
@@ -620,9 +620,7 @@ class RavenGUI
 				{
 					try
 					{
-						URI uri = new URI(exchangeUrls.get(buyFromlist.getItem(buyFromlist.getSelectionIndex())));
-						openInBrowser(uri);
-						
+						openInBrowser(new URI(exchangeUrls.get(buyFromlist.getItem(buyFromlist.getSelectionIndex()))));
 					}
 					catch (URISyntaxException urise)
 					{
@@ -656,8 +654,7 @@ class RavenGUI
 				{
 					try
 					{
-						URI uri = new URI(exchangeUrls.get(sellTolist.getItem(sellTolist.getSelectionIndex())));
-						openInBrowser(uri);
+						openInBrowser(new URI(exchangeUrls.get(sellTolist.getItem(sellTolist.getSelectionIndex()))));
 					}
 					catch (URISyntaxException urise)
 					{
@@ -671,9 +668,69 @@ class RavenGUI
 			}
 		 });
 		 
-		 //Buttons
-		 updatebut.addListener(SWT.MouseDown, new Listener ()
-		 {
+		
+		 //Menu bar items
+		 settings_listener = new Listener() 
+		{
+			@Override
+			public void handleEvent(Event arg0)
+			{
+				buildSettingsMenuGUI(display, shell.getBounds().x, shell.getBounds().y);
+			}
+		};
+			
+		generate_full_csv_report = new Listener()
+		{
+			@Override
+			public void handleEvent(Event arg0)
+			{
+				generateFullCSVReport();
+			}
+		};
+		
+		open_popup_listener = new Listener()
+		{
+			@Override
+			public void handleEvent(Event arg0)
+			{
+				(popup = new Popup("chat")).start();
+			}
+		};
+		
+		resetConfigListener = new Listener () 
+		{
+			@Override
+			public void handleEvent(Event arg0)
+			{
+				resetDefaults(0);
+				log("DEFAULTS: config.txt has been reset");
+			}
+		};
+		
+		resetExchangesListener = new Listener () 
+		{
+			@Override
+			public void handleEvent(Event arg0)
+			{
+				resetDefaults(1);
+				log("DEFAULTS: exchanges.txt has been reset");
+			}
+		};
+		
+		resetAllListener = new Listener() 
+		{
+			@Override
+			public void handleEvent(Event arg0)
+			{
+				resetDefaults(0);
+				resetDefaults(1);
+				log("DEFAULTS: config.txt & exchanges.txt have been reset");
+			}
+		};
+
+		//Buttons
+		updatebut.addListener(SWT.MouseDown, new Listener ()
+		{
 			@Override
 			public void handleEvent (Event e)
 			{
@@ -682,11 +739,9 @@ class RavenGUI
 				else
 					log("UPDATE: Raven is currently updating, please wait.");
 			}
-		 });
+		});
 		 
-		 settingsbut.addListener(SWT.MouseDown, settings_listener);
-		 
-		 exchswapbut.addListener(SWT.MouseDown, new Listener() 
+		exchswapbut.addListener(SWT.MouseDown, new Listener() 
 		 {
 			@Override
 			public void handleEvent(Event arg0)
@@ -700,6 +755,149 @@ class RavenGUI
 				}
 			}
 		 });
+		 
+		//Set up Shell's Close event handler
+		shell.addListener(SWT.Close, new Listener() 
+		{
+			@Override
+			public void handleEvent(Event arg0)
+			{
+				if (updateTimer != null) updateTimer.cancel();
+				killUpdate(false);
+			}
+		});
+		
+		shell.addListener(SWT.RESIZE, new Listener() 
+		{
+			@Override
+			public void handleEvent(Event arg0)
+			{
+				exchtable.redraw();
+			}
+		});
+		
+		coindistro.addListener(SWT.MouseDown, new Listener()
+		{
+			@Override
+			public void handleEvent(Event arg0)
+			{
+				if (!chartfunction.contentEquals(COIN_DISTRO))
+				{
+					chartfunction = COIN_DISTRO;
+					try
+					{
+						chartmethod.get(COIN_DISTRO).invoke(null);
+					}
+					catch (IllegalAccessException e)
+					{
+						e.printStackTrace();
+					}
+					catch (IllegalArgumentException e)
+					{
+						e.printStackTrace();
+					}
+					catch (InvocationTargetException e)
+					{
+						e.printStackTrace();
+					}
+				}
+			}
+		});
+		
+		//Update the chart per each coin clicked (coinlist listener)
+		
+		buyspectrum.addListener(SWT.MouseDown, new Listener()
+		{
+			@Override
+			public void handleEvent(Event arg0)
+			{
+				if (!chartfunction.contentEquals(BUY_SPEC))
+				{
+					chartfunction = BUY_SPEC;
+					try
+					{
+						chartmethod.get(BUY_SPEC).invoke(null);
+					}
+					catch (IllegalAccessException e)
+					{
+						e.printStackTrace();
+					}
+					catch (IllegalArgumentException e)
+					{
+						e.printStackTrace();
+					}
+					catch (InvocationTargetException e)
+					{
+						e.printStackTrace();
+					}
+				}
+			}
+		});
+		
+		sellspectrum.addListener(SWT.MouseDown, new Listener()
+		{
+			@Override
+			public void handleEvent(Event arg0)
+			{
+				if (!chartfunction.contentEquals(SELL_SPEC))
+				{
+					chartfunction = SELL_SPEC;
+					try
+					{
+						chartmethod.get(SELL_SPEC).invoke(null);
+					}
+					catch (IllegalAccessException e)
+					{
+						e.printStackTrace();
+					}
+					catch (IllegalArgumentException e)
+					{
+						e.printStackTrace();
+					}
+					catch (InvocationTargetException e)
+					{
+						e.printStackTrace();
+					}
+				}
+			}
+		}); 
+		
+		priceovertime.addListener(SWT.MouseDown, new Listener()
+		{
+			@Override
+			public void handleEvent(Event arg0)
+			{
+				if (!chartfunction.contentEquals(PRICE_TIME))
+				{
+					chartfunction = PRICE_TIME;
+					try
+					{
+						chartmethod.get(PRICE_TIME).invoke(null);
+					}
+					catch (IllegalAccessException e)
+					{
+						e.printStackTrace();
+					}
+					catch (IllegalArgumentException e)
+					{
+						e.printStackTrace();
+					}
+					catch (InvocationTargetException e)
+					{
+						e.printStackTrace();
+					}
+				}
+			}
+		});
+		
+		//Add previously-made listeners
+		settingsItem.addListener(SWT.Selection, settings_listener);
+		fullCSVreportItem.addListener(SWT.Selection, generate_full_csv_report);
+		infoItem.addListener(SWT.Selection, open_popup_listener);
+		settingsbut.addListener(SWT.MouseDown, settings_listener);
+		resetConfigItem.addListener(SWT.Selection, resetConfigListener);
+		resetAllItem.addListener(SWT.Selection, resetAllListener);
+		resetExchangesItem.addListener(SWT.Selection, resetExchangesListener);
 	}
 	
 	/**
@@ -721,16 +919,14 @@ class RavenGUI
 		//Create option to open the settings window
 		settingsItem = new MenuItem(controlsSubmenu, SWT.PUSH);
 		settingsItem.setText("&Settings");
-		settingsItem.addListener(SWT.Selection, settings_listener);
-		
+
 		//Create option to generate a full CSV report
 		fullCSVreportItem = new MenuItem(controlsSubmenu, SWT.PUSH);
 		fullCSVreportItem.setText("Generate CSV &report");
-		fullCSVreportItem.addListener(SWT.Selection, generate_full_csv_report);
 		
 		infoItem = new MenuItem(controlsSubmenu, SWT.PUSH);
 		infoItem.setText("Raven info");
-		infoItem.addListener(SWT.Selection, open_popup_listener);
+		
 		
 		//----------------------------------------------------------------------------------
 		//Defaults
@@ -741,15 +937,24 @@ class RavenGUI
 		
 		resetConfigItem = new MenuItem(defaultsSubmenu, SWT.PUSH);
 		resetConfigItem.setText("Reset config.txt");
-		resetConfigItem.addListener(SWT.Selection, resetConfigListener);
-		
+
 		resetExchangesItem = new MenuItem(defaultsSubmenu, SWT.PUSH);
 		resetExchangesItem.setText("Reset exchanges.txt");
-		resetExchangesItem.addListener(SWT.Selection, resetExchangesListener);
-		
+
 		resetAllItem = new MenuItem(defaultsSubmenu, SWT.PUSH);
 		resetAllItem.setText("Reset all");
-		resetAllItem.addListener(SWT.Selection, resetAllListener);
+	}
+	
+	/**
+	 * <p>Creates and allocates the Toolbar</p>
+	 */
+	private void buildToolBar()
+	{
+		charttool = new ToolBar(shell, SWT.WRAP);
+		coindistro = new ToolItem(charttool, SWT.PUSH);
+		buyspectrum = new ToolItem(charttool, SWT.PUSH);
+		sellspectrum = new ToolItem(charttool, SWT.PUSH);
+		priceovertime = new ToolItem(charttool, SWT.PUSH);
 	}
 	
 	/**
@@ -758,52 +963,63 @@ class RavenGUI
 	private void setGridDataForControls(boolean apply)
 	{
 		//Coinlist ------------------------------------------------
-		gdata[0].verticalAlignment = GridData.FILL;
-		gdata[0].verticalSpan = 2;
-		gdata[0].grabExcessVerticalSpace = true;
+		maindata[0].verticalAlignment = GridData.FILL;
+		maindata[0].verticalSpan = 2;
+		maindata[0].grabExcessVerticalSpace = true;
+		maindata[0].widthHint = 70;
 		
-		//buyFromlist ---------------------------------------------
-		gdata[1].horizontalAlignment = GridData.CENTER;
-		gdata[1].heightHint = 90;
-		gdata[1].widthHint = 80;
-		
-		//sellTolist ----------------------------------------------
-		gdata[2].horizontalAlignment = GridData.BEGINNING;
-		gdata[2].heightHint = 90;
-		gdata[2].widthHint = 80;
+		//buySellSelComp ------------------------------------------
+		maindata[1].horizontalAlignment = GridData.CENTER;
+		maindata[1].horizontalSpan = 2;
 		
 		//loglist -------------------------------------------------
-		gdata[3].horizontalAlignment = GridData.FILL; //loglist
-		gdata[3].grabExcessHorizontalSpace = true;
-		gdata[3].horizontalSpan = 4;
-		gdata[3].heightHint = 70;
-		
-		//exchtable -----------------------------------------------
-		gdata[4].verticalAlignment = GridData.FILL; 
-		gdata[4].horizontalAlignment = GridData.FILL;
-		gdata[4].grabExcessHorizontalSpace = true;
-		gdata[4].grabExcessVerticalSpace = true;
-		gdata[4].horizontalSpan = 3;
+		maindata[2].horizontalAlignment = GridData.FILL;
+		maindata[2].grabExcessHorizontalSpace = true;
+		maindata[2].horizontalSpan = 3;
+		maindata[2].heightHint = 70;
 		
 		//updatebut -----------------------------------------------
-		gdata[5].horizontalAlignment = GridData.CENTER;
-		gdata[5].minimumWidth = 100;
-		gdata[5].minimumHeight = 35;
-		
+		maindata[3].horizontalAlignment = GridData.CENTER;
+		maindata[3].minimumWidth = 100;
+		maindata[3].minimumHeight = 35;
 		
 		//settingsbut ---------------------------------------------
-		gdata[6].horizontalAlignment = GridData.CENTER; 
+		maindata[4].horizontalAlignment = GridData.BEGINNING;
+		maindata[4].minimumWidth = 100;
+		maindata[4].minimumHeight = 35;
 		
-		//exchswapbut ---------------------------------------------
-		gdata[7].horizontalAlignment = GridData.FILL;
-		//gdata[7].grabExcessHorizontalSpace = true;
-		gdata[7].widthHint = 35;
+		//chartcomp -----------------------------------------------
+		maindata[5].horizontalAlignment = GridData.FILL;
+		maindata[5].verticalAlignment = GridData.FILL;
+		maindata[5].grabExcessHorizontalSpace = true;
+		maindata[5].grabExcessVerticalSpace = true;
+		maindata[5].horizontalSpan = 2;
 		
-		//buyFromLab ----------------------------------------------
-		//gdata[8]; 
+		//---------------------------------------------------------
+		//exchtable -----------------------------------------------
+		tablechartdata[0].verticalAlignment = GridData.FILL; 
+		tablechartdata[0].horizontalAlignment = GridData.FILL;
+		tablechartdata[0].grabExcessHorizontalSpace = true;
+		tablechartdata[0].grabExcessVerticalSpace = true;
 		
-		//sellToLab -----------------------------------------------
-		//gdata[9]; 
+		//chart ---------------------------------------------------
+		tablechartdata[1].horizontalAlignment = GridData.FILL;
+		tablechartdata[1].verticalAlignment = GridData.FILL;
+		tablechartdata[1].grabExcessHorizontalSpace = true;
+		tablechartdata[1].grabExcessVerticalSpace = true;
+		
+		//---------------------------------------------------------
+		//buyFromList ---------------------------------------------
+		buyselldata[0].heightHint = 90;
+		buyselldata[0].widthHint = 80;
+		
+		//exchSwapButton ------------------------------------------
+		buyselldata[1].widthHint = 35;
+		buyselldata[1].heightHint = 20;
+		
+		//sellToList ----------------------------------------------
+		buyselldata[2].heightHint = 90;
+		buyselldata[2].widthHint = 80;
 		
 		if (apply) applyGridData();
 	}
@@ -811,16 +1027,21 @@ class RavenGUI
 	private void applyGridData()
 	{
 		//Apply layout data to controls
-		 coinlist.setLayoutData(gdata[0]);
-		 buyFromlist.setLayoutData(gdata[1]);
-		 sellTolist.setLayoutData(gdata[2]);
-		 loglist.setLayoutData(gdata[3]);
-		 exchtable.setLayoutData(gdata[4]);
-		 updatebut.setLayoutData(gdata[5]);
-		 settingsbut.setLayoutData(gdata[6]);
-		 exchswapbut.setLayoutData(gdata[7]);
-		 //buyFromLab.setLayoutData(gdata[8]);
-		 //sellToLab.setLayoutData(gdata[9]);
+		 coinlist.setLayoutData(maindata[0]);
+		 buySellSelComp.setLayoutData(maindata[1]);
+		 loglist.setLayoutData(maindata[2]);
+		 updatebut.setLayoutData(maindata[3]);
+		 settingsbut.setLayoutData(maindata[4]);
+		 chartcomp.setLayoutData(maindata[5]);
+		
+		 exchtable.setLayoutData(tablechartdata[0]);
+		 mainchart.setLayoutData(tablechartdata[1]);
+		 
+		 buyFromlist.setLayoutData(buyselldata[0]);
+		 exchswapbut.setLayoutData(buyselldata[1]);
+		 sellTolist.setLayoutData(buyselldata[2]);
+		 
+		 chartcomp.layout(true, true);
 	}
 	
 	/**
@@ -848,8 +1069,8 @@ class RavenGUI
 		
 		//Positioning constants
 		final Rectangle EXCH_GROUP = new Rectangle(10, 10, 255, 200);
-		final Rectangle UPDATE_GROUP = new Rectangle(270, 10, 190, 100);
-		final Rectangle POPUP_GROUP = new Rectangle(270, 110, 192, 50);
+		final Rectangle UPDATE_GROUP = new Rectangle(270, 10, 200, 100);
+		final Rectangle POPUP_GROUP = new Rectangle(270, 110, 200, 50);
 		
 		//Sizing and positioning ---------------------------------------------------------
 		setshell.setBounds(x - (RAVEN_SETTINGS_WIDTH / 2) + (RAVEN_MAIN_WIDTH / 2), y - (RAVEN_SETTINGS_HEIGHT / 2) + (RAVEN_MAIN_HEIGHT / 2), RAVEN_SETTINGS_WIDTH, RAVEN_SETTINGS_HEIGHT);
@@ -892,7 +1113,7 @@ class RavenGUI
 		recurringUpdatesBut.pack();
 		recurringUpdatesBut.setToolTipText("When checked, Raven automatically updates the coin list at an interval that you specify");
 		
-		showPopupOnLoadBut.setText("Show info popup onload");
+		showPopupOnLoadBut.setText("Show popup when Raven starts");
 		showPopupOnLoadBut.pack();
 		showPopupOnLoadBut.setToolTipText("When checked, a popup for information will appear every time Raven is launched.");
 		
@@ -963,7 +1184,8 @@ class RavenGUI
 					scheduledUpdateInterval = Long.parseLong(recurringUpdatesInterval.getText());
 					runPopupOnLoad = showPopupOnLoadBut.getSelection();
 					
-					commitUpdatesBut.setText("Commit each update to CSV"); commitUpdatesBut.pack();
+					commitUpdatesBut.setText("Commit each update to CSV");
+					commitUpdatesBut.pack();
 					saveUserSettings(setshell, exchChecklist);
 					
 				}
@@ -974,7 +1196,7 @@ class RavenGUI
 			}
 		}); //end of savebut.addListener() -------------------------------------------
 		
-		setshell.addListener(SWT.Close, new Listener() 
+		setshell.addListener(SWT.Close, new Listener()
 		{
 			@Override
 			public void handleEvent(Event arg0)
@@ -994,10 +1216,10 @@ class RavenGUI
 		 display.dispose();
 	}
 	
-	private void buildSplash(String welcomeMsg)
-	{
-		
-	}
+//	private void buildSplash(String welcomeMsg)
+//	{
+//		
+//	}
 	
 	public static void log(final String msg)
 	{
@@ -1022,7 +1244,7 @@ class RavenGUI
 		while (exchtable.getColumnCount() > 0) exchtable.getColumn(0).dispose();
 		exchtable.setLinesVisible(true);
 		exchtable.setHeaderVisible(true);
-		exchtable.setLayoutData(gdata[4]);
+		exchtable.setLayoutData(tablechartdata[0]);
 	}
 	
 	private void updateTable(String exchSell, String exchBuy)
@@ -1033,8 +1255,8 @@ class RavenGUI
 		//Create columns and the column header text
 		java.util.List<String> colheads = new ArrayList<String>();
 		colheads.add("Market");
-		colheads.add(exchSell + " " + selectedCoinCode + " Sell Price");
-		colheads.add(exchBuy + " " + selectedCoinCode + " Buy Price");
+		colheads.add(exchSell + " Sell Price");
+		colheads.add(exchBuy + " Buy Price");
 		colheads.add("Difference");
 		for (int i = 0; i < colheads.size(); i++)
 		{
@@ -1049,7 +1271,6 @@ class RavenGUI
 		//Fill exchtable according to the two selected exchanges
 		for (int record = 0; record < marketNames.size(); record++)
 		{
-			
 			Coin buyer = getCoin(exchSell, marketNames.get(record));
 			Coin seller = getCoin(exchBuy, marketNames.get(record));
 			
@@ -1320,24 +1541,22 @@ class RavenGUI
 				pw = new PrintWriter(bw);
 				
 				pw.println("# RAVEN EXCHANGES SELECTION");
-				pw.println("# DO NOT add exchanges that are not added by default. Each exchange");
-				pw.println("# releases unique JSON that must be coded per exchange. If you add");
-				pw.println("# a new one, the program won't know how to handle it, and will fail.");
-				pw.println("#");
 				pw.println("# This file lists each exchange that Raven can connect to and parse from.");
 				pw.println("# Each listed exchange has the option if you want its info or not.");
-				pw.println("# The settings menu in Raven modifies this file with a nice checklist,");
+				pw.println("# The settings menu in Raven modifies this file with a nice checklist");
 				pw.println("# but you can still modify it by doing exactly what you're doing right now.");
 				pw.println("#");
-				pw.println("# The format is <exchange, parseboolean>");
+				pw.println("# If you add an exchange that isn't here by default, Raven will ignore it when");
+				pw.println("# you try to run the exchange update.");
+				pw.println("# The format is <exchange name, parseboolean>");
 				pw.println("#");
-				pw.println("# exchange = The exchange to parse");
+				pw.println("# exchange name = The exchange to parse info from");
 				pw.println("# parseboolean = Set to 'T' if you wants this exchange's info; F otherwise.");
 				pw.println("#");
 				pw.println("# Use the # symbol if you want to write a comment in this file.");
 				pw.println("");
 				
-				//Exchanges
+				//RESET DEFAULT EXCHANGES
 				pw.println("atomic trade,F");
 				pw.println("bitfinex,T");
 				pw.println("bitstamp,T");
@@ -1351,11 +1570,11 @@ class RavenGUI
 				pw.println("coinex,T");
 				pw.println("coins-e,F");
 				pw.println("fxbtc,F");
-				pw.println("justcoin,F");
 				pw.println("kraken,T");
 				pw.println("mcxnow,F");
 				pw.println("mintpal,T");
 				pw.println("okcoin,F");
+				pw.println("prelude,T");
 				pw.println("poloniex,T");
 				pw.println("the rock trading,F");
 				pw.println("vircurex,F");
@@ -1370,8 +1589,8 @@ class RavenGUI
 				exchangelist.add("coinex");
 				exchangelist.add("kraken");
 				exchangelist.add("mintpal");
+				exchangelist.add("prelude");
 				exchangelist.add("poloniex");
-				
 			}
 			catch (IOException e){e.printStackTrace();}
 			finally
@@ -1721,19 +1940,6 @@ class RavenGUI
 				String bool = (exchChecklist.getItem(i).getChecked()) ? "T" : "F";
 				pw.println(exchChecklist.getItem(i).getText() + "," + bool);
 			}
-			
-			/*for (int i = 0; i < exchChecklist.getItemCount(); i++)
-			{
-				
-				//requestedExchs.put(exchChecklist.getItem(i).toString(), exchChecklist.getItem(i).getChecked());
-				
-				String bool = (exchChecklist.getItem(i).getChecked()) ? "T" : "F";
-				pw.println(exchChecklist.getItem(i).getText() + "," + bool);
-				
-				//Update exchangelist
-				//if (bool.contentEquals("T"))
-					//exchangelist.add(exchChecklist.getItem(i).getText().toString());
-			}*/
 		}
 		catch (IOException e1)
 		{
@@ -1816,5 +2022,42 @@ class RavenGUI
 		return false;
 	}
 	
+	/**
+	 * <p>Kills the EP thread which updates the coinlist if it's running.</p>
+	 * 
+	 * @param outputReason - provide <b>true</b> if you want to know why this method fails, if it does.
+	 */
+	@SuppressWarnings({"deprecation"})
+	private void killUpdate(boolean outputReason)
+	{
+		if (ep != null && !safeToUseCoinlist) 
+			ep.stop();
+		else 
+			if (outputReason && ep == null)
+				System.out.println("Unable to stop Update thread because the thread instantiation does not exist.");
+			else if (outputReason && safeToUseCoinlist)
+				System.out.println("Unable to stop Update thread because it has finished executing.");
+	}
+	
+	
+	private void coindistro()
+	{
+		
+	}
+	
+	private void buyspectrum()
+	{
+		
+	}
+	
+	private void sellspectrum()
+	{
+		
+	}
+	
+	private void priceovertime()
+	{
+		
+	}
 }
 
