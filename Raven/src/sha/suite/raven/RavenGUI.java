@@ -490,6 +490,7 @@ class RavenGUI
 		chartcomp.setLayout(chartcomplayout);
 		exchtable = new Table(chartcomp, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION);
 		mainchart = new Chart(chartcomp, SWT.NONE);
+		mainchart.getTitle().setText("Coin Distribution");
 		
 		//Set up controlling buttons and the loglist ---------------------------------------------------------
 		updatebut = new Button(shell, SWT.PUSH);
@@ -2029,29 +2030,28 @@ class RavenGUI
 			//Adjust the range so all the data can be seen at the same time
 			mainchart.getAxisSet().adjustRange();
 		}
-		forceUpdateChart();
+		mainchart.redraw(); //visually update the chart
 	}
 	
 	public void buyspectrum()
 	{
-		mainchart.getTitle().setText("Buy Prices");
+		//mainchart.getTitle().setText("Buy Prices");
+		mainchart.redraw();
+		RavenGUI.log("--CHART: \"Buy prices\" function currently unavailable");
 	}
 	
 	public void sellspectrum()
 	{
-		mainchart.getTitle().setText("Sell Prices");
+		//mainchart.getTitle().setText("Sell Prices");
+		mainchart.redraw();
+		RavenGUI.log("--CHART: \"Sell prices\" function currently unavailable");
 	}
 	
 	public void priceovertime()
 	{
-		mainchart.getTitle().setText("Prices Over Time");
-	}
-	
-	private void forceUpdateChart()
-	{
-		Rectangle t = shell.getBounds();
-		shell.setSize(t.width + 1, t.height + 1);
-		shell.setSize(t.width, t.height);
+		//mainchart.getTitle().setText("Prices Over Time");
+		mainchart.redraw();
+		RavenGUI.log("--CHART: \"Prices over time\" function currently unavailable");
 	}
 }
 
