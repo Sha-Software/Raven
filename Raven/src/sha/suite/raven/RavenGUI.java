@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -49,6 +50,12 @@ import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
 import org.swtchart.Chart;
+import org.swtchart.IAxis;
+import org.swtchart.IAxisSet;
+import org.swtchart.ISeries;
+import org.swtchart.ISeries.SeriesType;
+import org.swtchart.ISeriesSet;
+import org.swtchart.ITitle;
 
 //Build GUI according to user settings (GUI thread)
 class RavenGUI
@@ -93,10 +100,11 @@ class RavenGUI
 	
 	ToolBar charttool = null;
 	
-	ToolItem coindistro = null; 
-	ToolItem buyspectrum = null;
-	ToolItem sellspectrum = null;
-	ToolItem priceovertime = null;
+	ToolItem chartfunclabitem = null;
+	ToolItem coindistroitem = null; 
+	ToolItem buyspectrumitem = null;
+	ToolItem sellspectrumitem = null;
+	ToolItem priceovertimeitem = null;
 	
 	/* ************************************************************************************************** *
 	 * GUI Positioning Constants 																		  *
@@ -116,7 +124,7 @@ class RavenGUI
 	GridData [] maindata = null;
 	GridData [] tablechartdata = null;
 	GridData [] buyselldata = null;
-	final int MAINFORM_COUNT = 6;
+	final int MAINFORM_COUNT = 7;
 	final int TABLECHART_COUNT = 2;
 	final int BUYSELL_COUNT = 3;
 		
@@ -167,7 +175,6 @@ class RavenGUI
 	String selectedCoinCode = "";
 	
 	String chartfunction = "coindistro"; //holds which method gets called for the chart when a coin is selected
-	Map<String, Method> chartmethod = null;
 	final String COIN_DISTRO = "coindistro";
 	final String BUY_SPEC = "buyspectrum";
 	final String SELL_SPEC = "sellspectrum";
@@ -377,23 +384,6 @@ class RavenGUI
 		masterexchangelist = new ArrayList<String>();
 		requestedExchs = new HashMap<String,Boolean>();
 		
-		chartmethod = new HashMap<String, Method>();
-		try
-		{
-			chartmethod.put(COIN_DISTRO, RavenGUI.class.getMethod(COIN_DISTRO));
-			chartmethod.put(BUY_SPEC, RavenGUI.class.getMethod(BUY_SPEC));
-			chartmethod.put(SELL_SPEC, RavenGUI.class.getMethod(SELL_SPEC));
-			chartmethod.put(PRICE_TIME, RavenGUI.class.getMethod(PRICE_TIME));
-		}
-		catch (NoSuchMethodException e)
-		{
-			e.printStackTrace();
-		}
-		catch (SecurityException e)
-		{
-			e.printStackTrace();
-		}
-		
 		exchangeUrls = new HashMap<String,String>();
 		exchangeUrls.put("CRYPTSY", "https://www.cryptsy.com/");
 		exchangeUrls.put("COINEX", "http://coinex.pw/");
@@ -566,13 +556,22 @@ class RavenGUI
 			{
 				//Get a common coin list
 				int selection = coinlist.getSelectionIndex();
-				exchlist = common.getExchCoins(selection);
+				exchlist = common.getCommonCoinRow(selection);
 				
 				//Build a unique list of exchanges
 				processNames(exchlist, true);
 				
 				//Build a unique list of markets
 				processNames(exchlist, false);
+				
+				if (chartfunction.contentEquals(COIN_DISTRO))
+					coindistro();
+				else if (chartfunction.contentEquals(BUY_SPEC))
+					buyspectrum();
+				else if (chartfunction.contentEquals(SELL_SPEC))
+					sellspectrum();
+				else if (chartfunction.contentEquals(PRICE_TIME))
+					priceovertime();
 				
 				display.asyncExec(new Runnable()
 				{
@@ -767,16 +766,7 @@ class RavenGUI
 			}
 		});
 		
-		shell.addListener(SWT.RESIZE, new Listener() 
-		{
-			@Override
-			public void handleEvent(Event arg0)
-			{
-				exchtable.redraw();
-			}
-		});
-		
-		coindistro.addListener(SWT.MouseDown, new Listener()
+		coindistroitem.addListener(SWT.Selection, new Listener()
 		{
 			@Override
 			public void handleEvent(Event arg0)
@@ -784,29 +774,12 @@ class RavenGUI
 				if (!chartfunction.contentEquals(COIN_DISTRO))
 				{
 					chartfunction = COIN_DISTRO;
-					try
-					{
-						chartmethod.get(COIN_DISTRO).invoke(null);
-					}
-					catch (IllegalAccessException e)
-					{
-						e.printStackTrace();
-					}
-					catch (IllegalArgumentException e)
-					{
-						e.printStackTrace();
-					}
-					catch (InvocationTargetException e)
-					{
-						e.printStackTrace();
-					}
+					coindistro();
 				}
 			}
 		});
 		
-		//Update the chart per each coin clicked (coinlist listener)
-		
-		buyspectrum.addListener(SWT.MouseDown, new Listener()
+		buyspectrumitem.addListener(SWT.Selection, new Listener()
 		{
 			@Override
 			public void handleEvent(Event arg0)
@@ -814,27 +787,12 @@ class RavenGUI
 				if (!chartfunction.contentEquals(BUY_SPEC))
 				{
 					chartfunction = BUY_SPEC;
-					try
-					{
-						chartmethod.get(BUY_SPEC).invoke(null);
-					}
-					catch (IllegalAccessException e)
-					{
-						e.printStackTrace();
-					}
-					catch (IllegalArgumentException e)
-					{
-						e.printStackTrace();
-					}
-					catch (InvocationTargetException e)
-					{
-						e.printStackTrace();
-					}
+					buyspectrum();
 				}
 			}
 		});
 		
-		sellspectrum.addListener(SWT.MouseDown, new Listener()
+		sellspectrumitem.addListener(SWT.Selection, new Listener()
 		{
 			@Override
 			public void handleEvent(Event arg0)
@@ -842,27 +800,12 @@ class RavenGUI
 				if (!chartfunction.contentEquals(SELL_SPEC))
 				{
 					chartfunction = SELL_SPEC;
-					try
-					{
-						chartmethod.get(SELL_SPEC).invoke(null);
-					}
-					catch (IllegalAccessException e)
-					{
-						e.printStackTrace();
-					}
-					catch (IllegalArgumentException e)
-					{
-						e.printStackTrace();
-					}
-					catch (InvocationTargetException e)
-					{
-						e.printStackTrace();
-					}
+					sellspectrum();
 				}
 			}
 		}); 
 		
-		priceovertime.addListener(SWT.MouseDown, new Listener()
+		priceovertimeitem.addListener(SWT.Selection, new Listener()
 		{
 			@Override
 			public void handleEvent(Event arg0)
@@ -870,22 +813,7 @@ class RavenGUI
 				if (!chartfunction.contentEquals(PRICE_TIME))
 				{
 					chartfunction = PRICE_TIME;
-					try
-					{
-						chartmethod.get(PRICE_TIME).invoke(null);
-					}
-					catch (IllegalAccessException e)
-					{
-						e.printStackTrace();
-					}
-					catch (IllegalArgumentException e)
-					{
-						e.printStackTrace();
-					}
-					catch (InvocationTargetException e)
-					{
-						e.printStackTrace();
-					}
+					priceovertime();
 				}
 			}
 		});
@@ -950,11 +878,22 @@ class RavenGUI
 	 */
 	private void buildToolBar()
 	{
-		charttool = new ToolBar(shell, SWT.WRAP);
-		coindistro = new ToolItem(charttool, SWT.PUSH);
-		buyspectrum = new ToolItem(charttool, SWT.PUSH);
-		sellspectrum = new ToolItem(charttool, SWT.PUSH);
-		priceovertime = new ToolItem(charttool, SWT.PUSH);
+		charttool = new ToolBar(shell, SWT.BORDER | SWT.WRAP);
+		
+		chartfunclabitem = new ToolItem(charttool, SWT.None);
+		chartfunclabitem.setText("Chart function: ");
+		
+		coindistroitem = new ToolItem(charttool, SWT.PUSH);
+		coindistroitem.setText("Coin distribution");
+		
+		buyspectrumitem = new ToolItem(charttool, SWT.PUSH);
+		buyspectrumitem.setText("Buy prices");
+		
+		sellspectrumitem = new ToolItem(charttool, SWT.PUSH);
+		sellspectrumitem.setText("Sell prices");
+		
+		priceovertimeitem = new ToolItem(charttool, SWT.PUSH);
+		priceovertimeitem.setText("Prices over time");
 	}
 	
 	/**
@@ -995,6 +934,10 @@ class RavenGUI
 		maindata[5].grabExcessVerticalSpace = true;
 		maindata[5].horizontalSpan = 2;
 		
+		//charttool -----------------------------------------------
+		maindata[6].horizontalSpan = 3;
+		maindata[6].horizontalAlignment = GridData.END;
+		
 		//---------------------------------------------------------
 		//exchtable -----------------------------------------------
 		tablechartdata[0].verticalAlignment = GridData.FILL; 
@@ -1033,6 +976,7 @@ class RavenGUI
 		 updatebut.setLayoutData(maindata[3]);
 		 settingsbut.setLayoutData(maindata[4]);
 		 chartcomp.setLayoutData(maindata[5]);
+		 charttool.setLayoutData(maindata[6]);
 		
 		 exchtable.setLayoutData(tablechartdata[0]);
 		 mainchart.setLayoutData(tablechartdata[1]);
@@ -1325,6 +1269,11 @@ class RavenGUI
 		return null;
 	}
 	
+	/**
+	 * 
+	 * @param coins - use <b>true</b> to process a list of exchanges. Use <b>false</b> for market names.</b>
+	 * @param processExchanges
+	 */
 	private void processNames(java.util.List<Coin> coins, boolean processExchanges)
 	{
 		if (processExchanges)
@@ -1409,7 +1358,7 @@ class RavenGUI
 						pw.println("Coin Code,Exchange,Market,Buy,Sell,Last,Volume");
 						for (int exchcoin = 0; exchcoin < common.commonSize(coin); exchcoin++)
 						{
-							Coin c = common.getExchCoins(coin).get(exchcoin);
+							Coin c = common.getCommonCoinRow(coin).get(exchcoin);
 							pw.println(c.getPriCode() + "," + c.getExchange() + "," + c.getSecCode() + "," + c.getBuy() + "," + c.getSell() + "," + c.getVolume() + "," + c.getLastTrade() + "");
 						}
 						pw.println("");
@@ -2040,24 +1989,69 @@ class RavenGUI
 	}
 	
 	
-	private void coindistro()
+	public void coindistro()
 	{
-		
+		mainchart.getTitle().setText("Coin Distribution");
+		int sel = coinlist.getSelectionIndex();
+		if (sel != -1)
+		{
+			Map<String, Integer>exchcount = new HashMap<String, Integer>();
+			for (int i = 0; i < exchangeNames.size(); i++)
+				exchcount.put(exchangeNames.get(i), 0);
+			
+			java.util.List<Coin> coins = common.getCommonCoinRow(sel);
+			
+			for (int coin = 0; coin < coins.size(); coin++)
+				exchcount.put(coins.get(coin).getExchange(), exchcount.get(coins.get(coin).getExchange()) + 1);
+			
+			double [] series = new double[exchcount.size()];
+			
+			//Output the HashMap's values to a Double array
+			int i = 0;
+			for (Entry<String, Integer> entry : exchcount.entrySet())
+			{
+				 String key = entry.getKey();
+				 series[i] = exchcount.get(key);
+				 i++;
+			}
+			
+			//Apply series to the chart
+			ISeriesSet seriesset = mainchart.getSeriesSet();
+			ISeries ser = seriesset.createSeries(SeriesType.BAR, "Coin #");
+			ser.setYSeries(series);
+			
+			IAxisSet xset = mainchart.getAxisSet();
+			IAxis xAxis = xset.getXAxis(0);
+			String [] names = exchangeNames.toArray(new String[exchangeNames.size()]);
+			xAxis.setCategorySeries(names);
+			xAxis.enableCategory(true);
+			
+			//Adjust the range so all the data can be seen at the same time
+			mainchart.getAxisSet().adjustRange();
+		}
+		forceUpdateChart();
 	}
 	
-	private void buyspectrum()
+	public void buyspectrum()
 	{
-		
+		mainchart.getTitle().setText("Buy Prices");
 	}
 	
-	private void sellspectrum()
+	public void sellspectrum()
 	{
-		
+		mainchart.getTitle().setText("Sell Prices");
 	}
 	
-	private void priceovertime()
+	public void priceovertime()
 	{
-		
+		mainchart.getTitle().setText("Prices Over Time");
+	}
+	
+	private void forceUpdateChart()
+	{
+		Rectangle t = shell.getBounds();
+		shell.setSize(t.width + 1, t.height + 1);
+		shell.setSize(t.width, t.height);
 	}
 }
 

@@ -32,6 +32,6 @@ mcxnow,F
 mintpal,T
 okcoin,F
 prelude,F
-poloniex,T
+poloniex,F
 the rock trading,F
 vircurex,F

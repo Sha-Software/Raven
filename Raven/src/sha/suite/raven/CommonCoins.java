@@ -38,9 +38,8 @@ public class CommonCoins
 	 * <p>Returns an array containing common coins over different exchanges.</p>
 	 * @return
 	 */
-	public List<Coin> getCommonCoins(int coin)
+	public List<Coin> getCommonCoinRow(int coin)
 	{
-		//return _coins[coin];
 		return _coins.get(coin);
 	}
 	
@@ -131,16 +130,6 @@ public class CommonCoins
 	public int commonSize(int coin)
 	{
 		return _coins.get(coin).size();
-	}
-	
-	/**
-	 * <p>Returns a List<Coin> object containing common coins over several exchanges.</p>
-	 * @param pos
-	 * @return
-	 */
-	public List<Coin> getExchCoins(int pos)
-	{
-		return _coins.get(pos);
 	}
 	
 	/**
