@@ -333,8 +333,8 @@ public class CoinRoster
 						
 						tempC.setExch("BITTREX");
 						tempC.setLastTrade((jt.get("Last").toString() != "null") ? jt.getDouble("Last") : -1);
-						tempC.setPriCode(coincode.substring(0, coincode.indexOf("-"))); //get first half of label
-						tempC.setSecCode(coincode.substring(coincode.indexOf("-") + 1)); //get second half of label
+						tempC.setSecCode(coincode.substring(0, coincode.indexOf("-"))); //get first half of label
+						tempC.setPriCode(coincode.substring(coincode.indexOf("-") + 1)); //get second half of label
 						tempC.setVolume((jt.get("Volume").toString() != "null") ? jt.getDouble("Volume") : -1);
 						tempC.setBuy(tempC.getLastTrade());
 						tempC.setSell(tempC.getLastTrade());

@@ -9,8 +9,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.DateFormat;
@@ -31,12 +29,10 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Layout;
 import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Listener;
@@ -104,6 +100,7 @@ class RavenGUI
 	ToolItem coindistroitem = null; 
 	ToolItem buyspectrumitem = null;
 	ToolItem sellspectrumitem = null;
+	ToolItem volspectrumitem = null;
 	ToolItem priceovertimeitem = null;
 	
 	/* ************************************************************************************************** *
@@ -178,6 +175,7 @@ class RavenGUI
 	final String COIN_DISTRO = "coindistro";
 	final String BUY_SPEC = "buyspectrum";
 	final String SELL_SPEC = "sellspectrum";
+	final String VOL_SPEC = "volspectrum";
 	final String PRICE_TIME = "priceovertime";
 	
 	/* ************************************************************************************************** *
@@ -208,56 +206,59 @@ class RavenGUI
 	{
 		public void run()
 		{
-			//Build exchange list and process their coins
-			safeToUseCoinlist = false; //Lock the coin list from CSV generation
-			display.asyncExec(new Runnable()
-			{public void run()
-				{
-					//Change the button text to provide visual feedback to user
-					updatebut.setText(BUTTON_UPDATE_MSG);					
-				}
-			});
-			
-			boolean processed = processMarkets();
-			safeToUseCoinlist = true; //Unlock the coin list--it's finished its processing
-			
-			if (processed)
+			if (safeToUseCoinlist)
 			{
-				//Get the list of unique coins and assign them to coinlist
-				coinnames = common.getCoinNames();
-				commonsizes = common.commonSizes();
-				exchcount = common.getAllUniqueExchCount();
+				//Build exchange list and process their coins
+				safeToUseCoinlist = false; //Lock the coin list from CSV generation
+				display.asyncExec(new Runnable()
+				{public void run()
+					{
+						//Change the button text to provide visual feedback to user
+						updatebut.setText(BUTTON_UPDATE_MSG);					
+					}
+				});
 				
-				display.asyncExec(new Runnable()
+				boolean processed = processMarkets();
+				safeToUseCoinlist = true; //Unlock the coin list--it's finished its processing
+				
+				if (processed)
 				{
-					public void run()
+					//Get the list of unique coins and assign them to coinlist
+					coinnames = common.getCoinNames();
+					commonsizes = common.commonSizes();
+					exchcount = common.getAllUniqueExchCount();
+					
+					display.asyncExec(new Runnable()
 					{
-						//Remove all list items for fresh output
-						coinlist.removeAll();
-						
-						//Add newly processed coins to the list
-						updateCoinList(coinnames, commonsizes, exchcount);
-						
-						//Change button text back to default to provide visual feedback
-						updatebut.setText(BUTTON_DEFAULT_MSG);
-						
-						if (commitUpdates)
+						public void run()
 						{
-							generateFullCSVReport();
+							//Remove all list items for fresh output
+							coinlist.removeAll();
+							
+							//Add newly processed coins to the list
+							updateCoinList(coinnames, commonsizes, exchcount);
+							
+							//Change button text back to default to provide visual feedback
+							updatebut.setText(BUTTON_DEFAULT_MSG);
+							
+							if (commitUpdates)
+							{
+								generateFullCSVReport();
+							}
 						}
-					}
-				});
-			}
-			else
-			{
-				log("UPDATE: No exchanges were processed because none are selected.");
-				display.asyncExec(new Runnable()
+					});
+				}
+				else
 				{
-					public void run()
+					log("UPDATE: No exchanges were processed because none are selected.");
+					display.asyncExec(new Runnable()
 					{
-						updatebut.setText(BUTTON_DEFAULT_MSG);
-					}
-				});
+						public void run()
+						{
+							updatebut.setText(BUTTON_DEFAULT_MSG);
+						}
+					});
+				}
 			}
 		}
 	}
@@ -281,10 +282,7 @@ class RavenGUI
 		String _popup = null;
 		Popup(){}
 		
-		Popup(String popup)
-		{
-			_popup = popup;
-		}
+		Popup(String popup)	{_popup = popup;}
 		
 		public void run()
 		{
@@ -480,7 +478,6 @@ class RavenGUI
 		//sellToLab = new Label(shell, SWT.NONE);
 		sellTolist = new List(buySellSelComp, SWT.BORDER | SWT.V_SCROLL);
 		
-		
 		//Set up main table and chart with their composite ---------------------------------------------------
 		chartcomp = new Composite(shell, SWT.NONE);
 		chartcomplayout = new GridLayout();
@@ -568,9 +565,11 @@ class RavenGUI
 				if (chartfunction.contentEquals(COIN_DISTRO))
 					coindistro();
 				else if (chartfunction.contentEquals(BUY_SPEC))
-					buyspectrum();
+					numspectrum('b');
 				else if (chartfunction.contentEquals(SELL_SPEC))
-					sellspectrum();
+					numspectrum('s');
+				else if (chartfunction.contentEquals(VOL_SPEC))
+					numspectrum('v');
 				else if (chartfunction.contentEquals(PRICE_TIME))
 					priceovertime();
 				
@@ -788,7 +787,7 @@ class RavenGUI
 				if (!chartfunction.contentEquals(BUY_SPEC))
 				{
 					chartfunction = BUY_SPEC;
-					buyspectrum();
+					numspectrum('b');
 				}
 			}
 		});
@@ -801,7 +800,20 @@ class RavenGUI
 				if (!chartfunction.contentEquals(SELL_SPEC))
 				{
 					chartfunction = SELL_SPEC;
-					sellspectrum();
+					numspectrum('s');
+				}
+			}
+		}); 
+		
+		volspectrumitem.addListener(SWT.Selection, new Listener()
+		{
+			@Override
+			public void handleEvent(Event arg0)
+			{
+				if (!chartfunction.contentEquals(VOL_SPEC))
+				{
+					chartfunction = VOL_SPEC;
+					numspectrum('v');
 				}
 			}
 		}); 
@@ -892,6 +904,9 @@ class RavenGUI
 		
 		sellspectrumitem = new ToolItem(charttool, SWT.PUSH);
 		sellspectrumitem.setText("Sell prices");
+		
+		volspectrumitem = new ToolItem(charttool, SWT.PUSH);
+		volspectrumitem.setText("Volume");
 		
 		priceovertimeitem = new ToolItem(charttool, SWT.PUSH);
 		priceovertimeitem.setText("Prices over time");
@@ -2033,18 +2048,77 @@ class RavenGUI
 		mainchart.redraw(); //visually update the chart
 	}
 	
-	public void buyspectrum()
+	/**
+	 * 
+	 * @param operation - <ul><li>char '<b>b</b>': collects buy price over selected coin</li><li>char '<b>s</b>': collects sell price over selected coin</li><li>char '<b>v</b>': collects volume numbers over selected coin</li></ul>
+	 */
+	public void numspectrum(char operation)
 	{
-		//mainchart.getTitle().setText("Buy Prices");
+		String title = "";
+		switch (operation)
+		{
+			case 'b':
+				title = "Buy Prices";
+				break;
+			case 's':
+				title = "Sell Prices";
+				break;
+			case 'v':
+				title = "Volume";
+				break;
+			default:
+				
+		}
+			
+		mainchart.getTitle().setText(title);
+		int sel = coinlist.getSelectionIndex();
+		if (sel != -1)
+		{
+			//Set up working lists for buy info and coin codes (for labeling)
+			java.util.List<Double> nums = new ArrayList<Double>();
+			java.util.List<String> codes = new ArrayList<String>();
+			java.util.List<Coin> coins = common.getCommonCoinRow(sel);
+			
+			for (int coin = 0; coin < coins.size(); coin++)
+			{
+				Coin t = coins.get(coin);
+				switch (operation)
+				{
+					case 'b':
+						//Add value to nums list
+						nums.add(t.getBuy());
+						break;
+					case 's':
+						nums.add(t.getSell());
+						break;
+					case 'v':
+						nums.add(t.getVolume());
+						break;
+				}
+				
+				//Add the priCode (Coin code) and secCode (Market code) in the sister codes List<String>
+				codes.add(t.getExchange().substring(0, 4) + "_" + t.getPriCode() + "_" + t.getSecCode());
+			}
+			
+			//once collected, convert into a double []
+			double[] yseries = new double[nums.size()];
+			for (int i = 0; i < yseries.length; i++)
+				yseries[i] = nums.get(i);
+			
+			//Apply the double [] series to the chart, appropriately labeling
+			ISeriesSet seriesset = mainchart.getSeriesSet();
+			ISeries ser = seriesset.createSeries(SeriesType.BAR, "Coin");
+			ser.setYSeries(yseries);
+			
+			IAxisSet xset = mainchart.getAxisSet();
+			IAxis xAxis = xset.getXAxis(0);
+			String [] names = codes.toArray(new String[codes.size()]);
+			xAxis.setCategorySeries(names);
+			xAxis.enableCategory(true);
+		}
+		
+		mainchart.getAxisSet().adjustRange();
 		mainchart.redraw();
-		RavenGUI.log("--CHART: \"Buy prices\" function currently unavailable");
-	}
-	
-	public void sellspectrum()
-	{
-		//mainchart.getTitle().setText("Sell Prices");
-		mainchart.redraw();
-		RavenGUI.log("--CHART: \"Sell prices\" function currently unavailable");
 	}
 	
 	public void priceovertime()

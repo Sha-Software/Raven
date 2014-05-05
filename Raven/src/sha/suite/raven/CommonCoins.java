@@ -3,7 +3,7 @@ package sha.suite.raven;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CommonCoins
+class CommonCoins
 {
 	//Following variables used to track processed exchange coins
 	private List<List<Coin>> _coins;
