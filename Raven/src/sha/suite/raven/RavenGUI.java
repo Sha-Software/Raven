@@ -23,6 +23,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
@@ -102,6 +103,16 @@ class RavenGUI
 	ToolItem sellspectrumitem = null;
 	ToolItem volspectrumitem = null;
 	ToolItem priceovertimeitem = null;
+	
+	
+	/* ************************************************************************************************** *
+	 * GUI Colors				 																		  *
+	 * ************************************************************************************************** */
+	
+	Color mainFormLight = null;
+	Color mainFormDark = null;
+	Color controlColor = null;
+	Color textColor = null;
 	
 	/* ************************************************************************************************** *
 	 * GUI Positioning Constants 																		  *
@@ -431,6 +442,7 @@ class RavenGUI
 		 buildAndPositionControls();
 		 loadUserSettings();
 		 buildAndAllocateListeners();
+		 applyColoring();
 		 
 		 shell.open();
 		 
@@ -481,7 +493,7 @@ class RavenGUI
 		//Set up main table and chart with their composite ---------------------------------------------------
 		chartcomp = new Composite(shell, SWT.NONE);
 		chartcomplayout = new GridLayout();
-		chartcomplayout.numColumns = 2;
+		chartcomplayout.numColumns = 3;
 		
 		chartcomplayout.makeColumnsEqualWidth = true;
 		chartcomp.setLayout(chartcomplayout);
@@ -960,12 +972,14 @@ class RavenGUI
 		tablechartdata[0].horizontalAlignment = GridData.FILL;
 		tablechartdata[0].grabExcessHorizontalSpace = true;
 		tablechartdata[0].grabExcessVerticalSpace = true;
+		tablechartdata[0].horizontalSpan = 1;
 		
 		//chart ---------------------------------------------------
 		tablechartdata[1].horizontalAlignment = GridData.FILL;
 		tablechartdata[1].verticalAlignment = GridData.FILL;
 		tablechartdata[1].grabExcessHorizontalSpace = true;
 		tablechartdata[1].grabExcessVerticalSpace = true;
+		tablechartdata[1].horizontalSpan = 2;
 		
 		//---------------------------------------------------------
 		//buyFromList ---------------------------------------------
@@ -1002,6 +1016,55 @@ class RavenGUI
 		 sellTolist.setLayoutData(buyselldata[2]);
 		 
 		 chartcomp.layout(true, true);
+	}
+	
+	private void applyColoring()
+	{
+		mainFormLight = new Color(display, 89, 89, 89);
+		mainFormDark = new Color(display, 64, 64, 64);
+		controlColor = new Color(display, 120, 120, 120);
+		textColor = new Color(display, 255, 255, 255);
+		
+		//Apply colors
+		shell.setBackground(mainFormDark);
+		shell.setForeground(textColor);
+		
+		//Chart 
+		chartcomp.setBackground(mainFormLight);
+		chartcomp.setForeground(textColor);
+		
+		mainchart.setBackground(mainFormLight);
+		mainchart.setForeground(textColor);
+		mainchart.setBackgroundInPlotArea(controlColor);
+		
+		//Container for exchange selection lists
+		buySellSelComp.setBackground(mainFormLight);
+		
+		//Exchange selection lists
+		buyFromlist.setBackground(controlColor);
+		buyFromlist.setForeground(textColor);
+		
+		sellTolist.setBackground(controlColor);
+		sellTolist.setForeground(textColor);
+		
+		//Chart control toolbar
+		charttool.setBackground(controlColor);
+		charttool.setForeground(textColor);
+		
+		//Coin information table
+		exchtable.setBackground(controlColor);
+		exchtable.setForeground(textColor);
+		
+		//Main coin list
+		coinlist.setBackground(controlColor);
+		coinlist.setForeground(textColor);
+		
+		//Log
+		loglist.setBackground(controlColor);
+		loglist.setForeground(textColor);
+		
+		
+		
 	}
 	
 	/**
@@ -1358,7 +1421,6 @@ class RavenGUI
 				
 				filename = path.getAbsolutePath() + "\\Raven_AllCoinsExport " + df.format(d) + ".csv";
 				
-				
 				FileWriter fw = null;
 				BufferedWriter bw = null;
 				PrintWriter pw = null;
@@ -1369,9 +1431,9 @@ class RavenGUI
 					pw = new PrintWriter(bw);
 					
 					log("GENERATE CSV: Writing coin information to file...");
+					pw.println("Coin Code,Exchange,Market,Buy,Sell,Last,Volume");
 					for (int coin = 0; coin < common.uniqueSize(); coin++)
-					{
-						pw.println("Coin Code,Exchange,Market,Buy,Sell,Last,Volume");
+					{	
 						for (int exchcoin = 0; exchcoin < common.commonSize(coin); exchcoin++)
 						{
 							Coin c = common.getCommonCoinRow(coin).get(exchcoin);
