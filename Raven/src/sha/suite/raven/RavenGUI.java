@@ -1036,6 +1036,13 @@ class RavenGUI
 		mainchart.setBackground(mainFormLight);
 		mainchart.setForeground(textColor);
 		mainchart.setBackgroundInPlotArea(controlColor);
+		mainchart.getLegend().setBackground(mainFormLight);
+		mainchart.getLegend().setForeground(textColor);
+		mainchart.getTitle().setForeground(textColor);
+		mainchart.getAxisSet().getXAxis(0).getTitle().setForeground(textColor);
+		mainchart.getAxisSet().getYAxis(0).getTitle().setForeground(textColor);
+		mainchart.getAxisSet().getXAxis(0).getTick().setForeground(textColor);
+		mainchart.getAxisSet().getYAxis(0).getTick().setForeground(textColor);
 		
 		//Container for exchange selection lists
 		buySellSelComp.setBackground(mainFormLight);
@@ -1323,12 +1330,6 @@ class RavenGUI
 			exchtable.getColumn(idx).pack();
 	}
 	
-	
-	
-	/* ******************************************************************************************************* *
-	 * Non-GUI methods																						   *
-	 * ******************************************************************************************************* */
-	
 	private void updateCoinList(String [] coins, int [] numcoins, int [] numexchs)
 	{
 		for (int i = 0; i < coins.length; i++)
@@ -1336,6 +1337,10 @@ class RavenGUI
 			coinlist.add(coins[i] + " (" + numcoins[i] + "," + numexchs[i] + ")");
 		}
 	}
+	
+	/* ******************************************************************************************************* *
+	 * Non-GUI methods																						   *
+	 * ******************************************************************************************************* */
 	
 	private Coin getCoin(String exchange, String market)
 	{
@@ -2098,7 +2103,7 @@ class RavenGUI
 			ISeries ser = seriesset.createSeries(SeriesType.BAR, "Coin");
 			ser.setYSeries(series);
 			
-			ser.getLabel().setFormat("##.#");
+			ser.getLabel().setFormat("#");
 			ser.getLabel().setVisible(true);
 			
 			IAxisSet xset = mainchart.getAxisSet();
@@ -2107,6 +2112,9 @@ class RavenGUI
 			xAxis.setCategorySeries(names);
 			xAxis.enableCategory(true);
 			
+			//Color the data
+			ser.getLabel().setForeground(textColor);
+						
 			//Adjust the range so all the data can be seen at the same time
 			mainchart.getAxisSet().adjustRange();
 		}
@@ -2175,7 +2183,7 @@ class RavenGUI
 			ISeries ser = seriesset.createSeries(SeriesType.BAR, "Coin");
 			ser.setYSeries(yseries);
 			
-			ser.getLabel().setFormat("##.#");
+			ser.getLabel().setFormat("##.0000#");
 			ser.getLabel().setVisible(true);
 			
 			IAxisSet xset = mainchart.getAxisSet();

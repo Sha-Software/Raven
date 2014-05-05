@@ -20,16 +20,16 @@ btc-e,F
 bter,T
 crypto-trade,F
 cryptonit,F
-cryptsy,T
+cryptsy,F
 coinedup,F
-coinex,T
+coinex,F
 coins-e,F
 fxbtc,F
-kraken,T
+kraken,F
 mcxnow,F
 mintpal,T
 okcoin,F
-prelude,T
-poloniex,T
+prelude,F
+poloniex,F
 the rock trading,F
 vircurex,F
