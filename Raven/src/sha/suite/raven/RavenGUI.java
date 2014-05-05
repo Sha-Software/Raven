@@ -2033,8 +2033,11 @@ class RavenGUI
 			
 			//Apply series to the chart
 			ISeriesSet seriesset = mainchart.getSeriesSet();
-			ISeries ser = seriesset.createSeries(SeriesType.BAR, "Coin #");
+			ISeries ser = seriesset.createSeries(SeriesType.BAR, "Coin");
 			ser.setYSeries(series);
+			
+			ser.getLabel().setFormat("##.#");
+			ser.getLabel().setVisible(true);
 			
 			IAxisSet xset = mainchart.getAxisSet();
 			IAxis xAxis = xset.getXAxis(0);
@@ -2109,6 +2112,9 @@ class RavenGUI
 			ISeriesSet seriesset = mainchart.getSeriesSet();
 			ISeries ser = seriesset.createSeries(SeriesType.BAR, "Coin");
 			ser.setYSeries(yseries);
+			
+			ser.getLabel().setFormat("##.#");
+			ser.getLabel().setVisible(true);
 			
 			IAxisSet xset = mainchart.getAxisSet();
 			IAxis xAxis = xset.getXAxis(0);
