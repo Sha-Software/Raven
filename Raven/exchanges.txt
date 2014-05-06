@@ -13,9 +13,9 @@
 #
 # Use the # symbol if you want to write a comment in this file.
 atomic trade,F
-bitfinex,T
+bitfinex,F
 bitstamp,T
-bittrex,T
+bittrex,F
 btc-e,F
 bter,T
 crypto-trade,F
@@ -27,7 +27,7 @@ coins-e,F
 fxbtc,F
 kraken,F
 mcxnow,F
-mintpal,T
+mintpal,F
 okcoin,F
 prelude,F
 poloniex,F

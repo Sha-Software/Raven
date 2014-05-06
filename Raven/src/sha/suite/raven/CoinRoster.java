@@ -59,8 +59,15 @@ public class CoinRoster
 	final String PRELUDE_MARKET_BTC = "https://api.prelude.io/statistics/";
 	final String PRELUDE_MARKET_USD = "https://api.prelude.io/statistics-usd/";
 	
+	final String FXBTC_1 = "https://data.fxbtc.com/api?op=query_ticker&symbol=btc_cny";
+	final String FXBTC_2 = "https://data.fxbtc.com/api?op=query_ticker&symbol=ltc_cny";
+	final String FXBTC_3 = "https://data.fxbtc.com/api?op=query_ticker&symbol=ltc_btc";
+	
+	final String ROCK_TRADING_URL = "https://www.therocktrading.com/api/tickers";
+	
 	final String COLLECTING_STRING = ": Collecting market information";
 	final String PROCESSING = "Processing individual coin info";
+	
 	
 	/**
 	 * <p>Holds each coin returned in JSON from the exchanges</p>
@@ -140,6 +147,10 @@ public class CoinRoster
 				processMintpal();
 			else if (_exch.contentEquals("PRELUDE"))
 				processPrelude();
+			else if (_exch.contentEquals("FXBTC"))
+				processFxbtc();
+			else if (_exch.contentEquals("THE ROCK TRADING"))
+				processRockTrading();
 			else
 				RavenGUI.log("Exchange \"" + _exch + "\" is not supported by Raven.");
 		}
@@ -641,6 +652,121 @@ public class CoinRoster
 		}
 	}
 	
+	private void processFxbtc() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
+	{
+		RavenGUI.log(_exch + COLLECTING_STRING);
+		String [] JSON = {GetAllMarketInfo(FXBTC_1), GetAllMarketInfo(FXBTC_2), GetAllMarketInfo(FXBTC_3)};
+		
+		JSONObject j = null;
+		Coin t = null;
+		if (JSON[0].length() > 0)
+		{
+			j = new JSONObject(JSON[0]);
+			if (j.getBoolean("result"))
+			{
+				j = j.getJSONObject("ticker");
+				t = new Coin();
+				
+				t.setExch(_exch);
+				t.setPriCode("BTC");
+				t.setSecCode("CNY");
+				t.setVolume(j.getDouble("vol"));
+				t.setLastTrade(j.getDouble("last_rate"));
+				t.setBuy(j.getDouble("ask"));
+				t.setSell(t.getBuy());
+				
+				addCoin(t);
+				
+				_validProcessing = true;
+			}
+		}
+		
+		if (JSON[1].length() > 0)
+		{
+			j = new JSONObject(JSON[1]);
+			if (j.getBoolean("result"))
+			{
+				j = j.getJSONObject("ticker");
+				t = new Coin();
+				
+				t.setExch(_exch);
+				t.setPriCode("LTC");
+				t.setSecCode("CNY");
+				t.setVolume(j.getDouble("vol"));
+				t.setLastTrade(j.getDouble("last_rate"));
+				t.setBuy(j.getDouble("ask"));
+				t.setSell(t.getBuy());
+				
+				addCoin(t);
+				
+				_validProcessing = true;
+			}
+		}
+		
+		if (JSON[2].length() > 0)
+		{
+			j = new JSONObject(JSON[2]);
+			if (j.getBoolean("result"))
+			{
+				j = j.getJSONObject("ticker");
+				t = new Coin();
+				
+				t.setExch(_exch);
+				t.setPriCode("LTC");
+				t.setSecCode("BTC");
+				t.setVolume(j.getDouble("vol"));
+				t.setLastTrade(j.getDouble("last_rate"));
+				t.setBuy(j.getDouble("ask"));
+				t.setSell(t.getBuy());
+				
+				addCoin(t);
+				
+				_validProcessing = true;
+			}
+		}
+	}
+	
+	private void processRockTrading() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
+	{
+		RavenGUI.log(_exch + COLLECTING_STRING);
+		String JSON = GetAllMarketInfo(ROCK_TRADING_URL);
+		if (JSON.length() > 0)
+		{
+			//Remove "&quot;" if it exists
+			if (strrep(JSON, "&quot;", "\""))
+			{
+				//JSON sanitized, process using JSONObjects
+				JSONObject j = new JSONObject(JSON);
+				j = j.getJSONObject("result");
+				if (j.getString("errorCode").toUpperCase().contentEquals("OK"))
+				{
+					j = j.getJSONObject("tickers");
+					JSONArray jn = j.names();
+					JSONArray ja = j.toJSONArray(jn);
+					Coin t = null;
+					for (int i = 0; i < ja.length(); i++)
+					{
+						t = new Coin();
+						j = ja.getJSONObject(i);
+						String code = jn.getString(i);
+						
+						if (code.length() == 6)
+						{
+							t.setExch(_exch);
+							t.setPriCode(code.substring(0, 3));
+							t.setSecCode(code.substring(3));
+							t.setLastTrade(j.getDouble("last"));
+							t.setVolume(j.getDouble("volume"));
+							t.setBuy(j.getDouble("ask"));
+							t.setSell(t.getBuy());
+						}
+					}
+				}
+				
+			}
+		}
+	}
+	
 	private void addCoin(Coin c) //------------------------------------------------------------
 	{
 		//Check if array is full (increase size by 10 if true)
@@ -734,8 +860,22 @@ public class CoinRoster
 				while ((temp = in.readLine()) != null)
 					JSON += temp;
 			}
+			else if (url.contains(COINEX_URL) || url.contains(BTER_TICKERS_URL) || url.contentEquals(FXBTC_1) || url.contentEquals(FXBTC_2) || url.contentEquals(FXBTC_3) || url.contentEquals(ROCK_TRADING_URL)) //COINEX CONNECT, BTER CONNECT, FXBTC CONNECT, ROCK TRADING CONNECT
+			{
+				//Open connection
+				URLConnection conn = exchurl.openConnection();
+
+				conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
+				conn.setRequestProperty("Accept-Charset", "utf-8");
+				
+				//Connect to page
+				in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+				while ((temp = in.readLine()) != null)
+					JSON += temp;
+			}
 			else if (url.contains("btce")) //BTC-E CONNECT
 			{
+				
 			}
 			else if (url.contains("api.kraken.com/0/public/Trades")) //KRAKEN CONNECT
 			{
@@ -900,21 +1040,7 @@ public class CoinRoster
 				while((temp = in.readLine()) != null)
 					JSON += temp;
 			}
-			else if (url.contains(COINEX_URL) || url.contains(BTER_TICKERS_URL)) //COINEX CONNECT, BTER CONNECT
-			{
-				URLConnection conn = null;
-				
-				//Open connection to web page
-				conn = exchurl.openConnection();
-
-				conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
-				conn.setRequestProperty("Accept-Charset", "utf-8");
-				in = new BufferedReader(new InputStreamReader(conn.getInputStream()/*, charset*/));
-				for (String line; (line = in.readLine()) != null;)
-				{
-					JSON += line;
-				}
-			}
+			
 			else if (url.contains(PRELUDE_MARKET_BTC)) //PRELUDE CONNECT
 			{
 				String [] tickers = {"888", "AUR", "BC", "DGB", "DGC", "DOGE", "DRK", "EMC2", "LTC", "MAX", "MEOW", "MINT", "PPC", "VTC"};
@@ -928,7 +1054,7 @@ public class CoinRoster
 					
 					conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
 					conn.setRequestProperty("Accept-Charset", "utf-8");
-					in = new BufferedReader(new InputStreamReader(conn.getInputStream()/*, charset*/));
+					in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
 				
 					//Collect server response
 					for (String line; (line = in.readLine()) != null;)
@@ -973,7 +1099,7 @@ public class CoinRoster
 					
 					conn.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
 					conn.setRequestProperty("Accept-Charset", "utf-8");
-					in = new BufferedReader(new InputStreamReader(conn.getInputStream()/*, charset*/));
+					in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
 				
 					//Collect server response
 					for (String line; (line = in.readLine()) != null;)
@@ -1043,5 +1169,34 @@ public class CoinRoster
 	public boolean verified()
 	{
 		return _validProcessing;
+	}
+	
+	/**
+	 * <p>Replaces instances of <b>stringToReplace</b> with <b>newString</b> inside the <b>container</b> String.</p>
+	 * @param container - The main string where occurences take place
+	 * @param stringToReplace - String to be replaced
+	 * @param newString - String to be inserted
+	 * @return <ul><li><b>false</b> if <i>stringToReplace</i> does not exist in <i>container</i> or any one of the arguments has length == 0.</li><li><b>true</b> if the operation was completed successfully.</li></ul>
+	 */
+	public boolean strrep(String container, String stringToReplace, String newString)
+	{
+		int start = 0;
+		int length = stringToReplace.length();
+		
+		if (container.length() > 0 && length > 0 && newString.length() > 0)
+			if (container.contains(stringToReplace))
+			{
+				while (container.contains(stringToReplace))
+				{
+					start = container.indexOf(stringToReplace);
+					String rightsplit = container.substring(start + length);
+					container = container.substring(0, start) + newString + rightsplit;
+				}
+				return true;
+			}
+			else
+				return false;
+		else
+			return false;
 	}
 }
