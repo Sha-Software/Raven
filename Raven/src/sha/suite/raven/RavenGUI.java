@@ -567,6 +567,9 @@ class RavenGUI
 		 	@Override
 		 	public void handleEvent (Event e)
 			{
+		 		//Disable sellTolist
+		 		sellTolist.setEnabled(false);
+		 		
 				//Get a common coin list
 				int selection = coinlist.getSelectionIndex();
 				exchlist = common.getCommonCoinRow(selection);
@@ -606,7 +609,6 @@ class RavenGUI
 						for (String s : exchangeNames)
 						{
 							buyFromlist.add(s);
-							sellTolist.add(s);
 						}
 					}
 				});
@@ -618,10 +620,29 @@ class RavenGUI
 			@Override
 			public void handleEvent(Event arg0)
 			{
-				if (sellTolist.getSelectionCount() > 0 && buyFromlist.getSelectionCount() > 0)
+				if (buyFromlist.getSelectionCount() > 0)
 				{
-					updateTable(buyFromlist.getItem(buyFromlist.getSelectionIndex()).toString(), sellTolist.getItem(sellTolist.getSelectionIndex()).toString());
+					//Enable sellTolist
+					sellTolist.setEnabled(true);
+					
+					//Refresh sellToList for fresh processing
+					sellTolist.removeAll();
+					for (int i = 0; i < exchangeNames.size(); i++) 
+						sellTolist.add(exchangeNames.get(i));
+					
+					String remexch = buyFromlist.getItem(buyFromlist.getSelectionIndex()).toString();
+					
+					//Remove occurence(s) of the selected exchange in sellTolist
+					for (int i = sellTolist.getItemCount() - 1; i >= 0 ; i--)
+						if (sellTolist.getItem(i).toString().contentEquals(remexch))
+							sellTolist.remove(i);
+					
+					if (sellTolist.getSelectionCount() > 0)
+					{
+						updateTable(buyFromlist.getItem(buyFromlist.getSelectionIndex()).toString(), sellTolist.getItem(sellTolist.getSelectionIndex()).toString());
+					}
 				}
+				
 			}
 		 });
 		 
@@ -762,9 +783,22 @@ class RavenGUI
 			{
 				if (buyFromlist.getSelectionCount() > 0 && sellTolist.getSelectionCount() > 0)
 				{
-					int temp = buyFromlist.getSelectionIndex();
-					buyFromlist.setSelection(sellTolist.getSelectionIndex());
-					sellTolist.setSelection(temp);
+					//Save both selected exchanges
+					String buyEx = buyFromlist.getItem(buyFromlist.getSelectionIndex());
+					String sellEx = sellTolist.getItem(sellTolist.getSelectionIndex());
+					
+					//Reset sellTolist
+					sellTolist.removeAll();
+					for (int i = 0; i < exchangeNames.size(); i++)
+						if (!exchangeNames.get(i).contentEquals(sellEx))
+							sellTolist.add(exchangeNames.get(i));
+					
+					
+					buyFromlist.setSelection(new String [] {sellEx});
+					sellTolist.setSelection(new String [] {buyEx});
+					//sellTolist.remove(sellEx);
+					
+					//Update comparison table
 					updateTable(buyFromlist.getItem(buyFromlist.getSelectionIndex()).toString(), sellTolist.getItem(sellTolist.getSelectionIndex()).toString());
 				}
 			}
@@ -1660,6 +1694,7 @@ class RavenGUI
 				exchangelist.add("bter");
 				exchangelist.add("cryptsy");
 				exchangelist.add("coinex");
+				exchangelist.add("fxbtc");
 				exchangelist.add("kraken");
 				exchangelist.add("mintpal");
 				exchangelist.add("prelude");
