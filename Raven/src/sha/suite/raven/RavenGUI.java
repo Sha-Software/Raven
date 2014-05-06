@@ -1026,6 +1026,7 @@ class RavenGUI
 		mainFormLight = new Color(display, 89, 89, 89);
 		mainFormDark = new Color(display, 64, 64, 64);
 		controlColor = new Color(display, 120, 120, 120);
+<<<<<<< HEAD
 		textColor = new Color(display, 0, 0, 0);
 		
 		//Apply colors
@@ -1040,12 +1041,29 @@ class RavenGUI
 		mainchart.setForeground(textColor);
 		//mainchart.setBackgroundInPlotArea(controlColor);
 		//mainchart.getLegend().setBackground(mainFormLight);
+=======
+		textColor = new Color(display, 255, 255, 255);
+		
+		//Apply colors
+		shell.setBackground(mainFormDark);
+		shell.setForeground(textColor);
+		
+		//Chart 
+		chartcomp.setBackground(mainFormLight);
+		chartcomp.setForeground(textColor);
+		
+		mainchart.setBackground(mainFormLight);
+		mainchart.setForeground(textColor);
+		mainchart.setBackgroundInPlotArea(controlColor);
+		mainchart.getLegend().setBackground(mainFormLight);
+>>>>>>> 01c4817c47ac7ccea6900260f6a05993aa532881
 		mainchart.getLegend().setForeground(textColor);
 		mainchart.getTitle().setForeground(textColor);
 		mainchart.getAxisSet().getXAxis(0).getTitle().setForeground(textColor);
 		mainchart.getAxisSet().getYAxis(0).getTitle().setForeground(textColor);
 		mainchart.getAxisSet().getXAxis(0).getTick().setForeground(textColor);
 		mainchart.getAxisSet().getYAxis(0).getTick().setForeground(textColor);
+<<<<<<< HEAD
 //		
 //		//Container for exchange selection lists
 //		buySellSelComp.setBackground(mainFormLight);
@@ -1072,6 +1090,34 @@ class RavenGUI
 //		//Log
 //		loglist.setBackground(controlColor);
 //		loglist.setForeground(textColor);
+=======
+		
+		//Container for exchange selection lists
+		buySellSelComp.setBackground(mainFormLight);
+		
+		//Exchange selection lists
+		buyFromlist.setBackground(controlColor);
+		buyFromlist.setForeground(textColor);
+		
+		sellTolist.setBackground(controlColor);
+		sellTolist.setForeground(textColor);
+		
+		//Chart control toolbar
+		charttool.setBackground(controlColor);
+		charttool.setForeground(textColor);
+		
+		//Coin information table
+		exchtable.setBackground(controlColor);
+		exchtable.setForeground(textColor);
+		
+		//Main coin list
+		coinlist.setBackground(controlColor);
+		coinlist.setForeground(textColor);
+		
+		//Log
+		loglist.setBackground(controlColor);
+		loglist.setForeground(textColor);
+>>>>>>> 01c4817c47ac7ccea6900260f6a05993aa532881
 		
 		
 		
@@ -2105,11 +2151,16 @@ class RavenGUI
 			ISeriesSet seriesset = mainchart.getSeriesSet();
 			IBarSeries series = (IBarSeries) seriesset.createSeries(SeriesType.BAR, "Coin");
 			
+<<<<<<< HEAD
 			series.getLabel().setFormat("#");
 			series.getLabel().setVisible(true);
 			series.setYSeries(yseries);
 			series.setBarColor(mainFormDark);
 			series.setBarPadding(40);
+=======
+			ser.getLabel().setFormat("#");
+			ser.getLabel().setVisible(true);
+>>>>>>> 01c4817c47ac7ccea6900260f6a05993aa532881
 			
 			IAxisSet xset = mainchart.getAxisSet();
 			IAxis xAxis = xset.getXAxis(0);
@@ -2118,7 +2169,11 @@ class RavenGUI
 			xAxis.enableCategory(true);
 			
 			//Color the data
+<<<<<<< HEAD
 			series.getLabel().setForeground(textColor);
+=======
+			ser.getLabel().setForeground(textColor);
+>>>>>>> 01c4817c47ac7ccea6900260f6a05993aa532881
 						
 			//Adjust the range so all the data can be seen at the same time
 			mainchart.getAxisSet().adjustRange();
