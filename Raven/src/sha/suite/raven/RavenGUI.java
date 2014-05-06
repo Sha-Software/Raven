@@ -23,6 +23,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
@@ -48,6 +49,7 @@ import org.eclipse.swt.widgets.ToolItem;
 import org.swtchart.Chart;
 import org.swtchart.IAxis;
 import org.swtchart.IAxisSet;
+import org.swtchart.IBarSeries;
 import org.swtchart.ISeries;
 import org.swtchart.ISeries.SeriesType;
 import org.swtchart.ISeriesSet;
@@ -102,6 +104,16 @@ class RavenGUI
 	ToolItem sellspectrumitem = null;
 	ToolItem volspectrumitem = null;
 	ToolItem priceovertimeitem = null;
+	
+	
+	/* ************************************************************************************************** *
+	 * GUI Colors				 																		  *
+	 * ************************************************************************************************** */
+	
+	Color mainFormLight = null;
+	Color mainFormDark = null;
+	Color controlColor = null;
+	Color textColor = null;
 	
 	/* ************************************************************************************************** *
 	 * GUI Positioning Constants 																		  *
@@ -431,6 +443,7 @@ class RavenGUI
 		 buildAndPositionControls();
 		 loadUserSettings();
 		 buildAndAllocateListeners();
+		 applyColoring();
 		 
 		 shell.open();
 		 
@@ -481,13 +494,15 @@ class RavenGUI
 		//Set up main table and chart with their composite ---------------------------------------------------
 		chartcomp = new Composite(shell, SWT.NONE);
 		chartcomplayout = new GridLayout();
-		chartcomplayout.numColumns = 2;
+		chartcomplayout.numColumns = 3;
 		
 		chartcomplayout.makeColumnsEqualWidth = true;
 		chartcomp.setLayout(chartcomplayout);
 		exchtable = new Table(chartcomp, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION);
 		mainchart = new Chart(chartcomp, SWT.NONE);
 		mainchart.getTitle().setText("Coin Distribution");
+		mainchart.getAxisSet().getXAxis(0).getGrid().setForeground(new Color(display, 255, 255, 255));
+		mainchart.getAxisSet().getYAxis(0).getGrid().setForeground(new Color(display, 255, 255, 255));
 		
 		//Set up controlling buttons and the loglist ---------------------------------------------------------
 		updatebut = new Button(shell, SWT.PUSH);
@@ -500,7 +515,7 @@ class RavenGUI
 		shell.setText(RAVEN_MAINSHELL_TITLE);
 		 
 		//Lists -------------------------------------------------------------------------
-		coinlist.setToolTipText("Format: COIN (# of coins found, # of exchanges found in)");
+		coinlist.setToolTipText("COIN (# of coins found, # of exchanges found in)");
 		buyFromlist.setToolTipText("Double-click an entry to open that exchange's website");
 		sellTolist.setToolTipText("Double-click an entry to open that exchange's website");
 		 
@@ -960,12 +975,14 @@ class RavenGUI
 		tablechartdata[0].horizontalAlignment = GridData.FILL;
 		tablechartdata[0].grabExcessHorizontalSpace = true;
 		tablechartdata[0].grabExcessVerticalSpace = true;
+		tablechartdata[0].horizontalSpan = 1;
 		
 		//chart ---------------------------------------------------
 		tablechartdata[1].horizontalAlignment = GridData.FILL;
 		tablechartdata[1].verticalAlignment = GridData.FILL;
 		tablechartdata[1].grabExcessHorizontalSpace = true;
 		tablechartdata[1].grabExcessVerticalSpace = true;
+		tablechartdata[1].horizontalSpan = 2;
 		
 		//---------------------------------------------------------
 		//buyFromList ---------------------------------------------
@@ -1002,6 +1019,62 @@ class RavenGUI
 		 sellTolist.setLayoutData(buyselldata[2]);
 		 
 		 chartcomp.layout(true, true);
+	}
+	
+	private void applyColoring()
+	{
+		mainFormLight = new Color(display, 89, 89, 89);
+		mainFormDark = new Color(display, 64, 64, 64);
+		controlColor = new Color(display, 120, 120, 120);
+		textColor = new Color(display, 0, 0, 0);
+		
+		//Apply colors
+//		shell.setBackground(mainFormDark);
+//		shell.setForeground(textColor);
+//		
+//		//Chart 
+//		chartcomp.setBackground(mainFormLight);
+//		chartcomp.setForeground(textColor);
+//		
+		//mainchart.setBackground(mainFormLight);
+		mainchart.setForeground(textColor);
+		//mainchart.setBackgroundInPlotArea(controlColor);
+		//mainchart.getLegend().setBackground(mainFormLight);
+		mainchart.getLegend().setForeground(textColor);
+		mainchart.getTitle().setForeground(textColor);
+		mainchart.getAxisSet().getXAxis(0).getTitle().setForeground(textColor);
+		mainchart.getAxisSet().getYAxis(0).getTitle().setForeground(textColor);
+		mainchart.getAxisSet().getXAxis(0).getTick().setForeground(textColor);
+		mainchart.getAxisSet().getYAxis(0).getTick().setForeground(textColor);
+//		
+//		//Container for exchange selection lists
+//		buySellSelComp.setBackground(mainFormLight);
+//		
+//		//Exchange selection lists
+//		buyFromlist.setBackground(controlColor);
+//		buyFromlist.setForeground(textColor);
+//		
+//		sellTolist.setBackground(controlColor);
+//		sellTolist.setForeground(textColor);
+//		
+//		//Chart control toolbar
+//		charttool.setBackground(controlColor);
+//		charttool.setForeground(textColor);
+//		
+//		//Coin information table
+//		exchtable.setBackground(controlColor);
+//		exchtable.setForeground(textColor);
+//		
+//		//Main coin list
+//		coinlist.setBackground(controlColor);
+//		coinlist.setForeground(textColor);
+//		
+//		//Log
+//		loglist.setBackground(controlColor);
+//		loglist.setForeground(textColor);
+		
+		
+		
 	}
 	
 	/**
@@ -1260,12 +1333,6 @@ class RavenGUI
 			exchtable.getColumn(idx).pack();
 	}
 	
-	
-	
-	/* ******************************************************************************************************* *
-	 * Non-GUI methods																						   *
-	 * ******************************************************************************************************* */
-	
 	private void updateCoinList(String [] coins, int [] numcoins, int [] numexchs)
 	{
 		for (int i = 0; i < coins.length; i++)
@@ -1273,6 +1340,10 @@ class RavenGUI
 			coinlist.add(coins[i] + " (" + numcoins[i] + "," + numexchs[i] + ")");
 		}
 	}
+	
+	/* ******************************************************************************************************* *
+	 * Non-GUI methods																						   *
+	 * ******************************************************************************************************* */
 	
 	private Coin getCoin(String exchange, String market)
 	{
@@ -1358,7 +1429,6 @@ class RavenGUI
 				
 				filename = path.getAbsolutePath() + "\\Raven_AllCoinsExport " + df.format(d) + ".csv";
 				
-				
 				FileWriter fw = null;
 				BufferedWriter bw = null;
 				PrintWriter pw = null;
@@ -1369,9 +1439,9 @@ class RavenGUI
 					pw = new PrintWriter(bw);
 					
 					log("GENERATE CSV: Writing coin information to file...");
+					pw.println("Coin Code,Exchange,Market,Buy,Sell,Last,Volume");
 					for (int coin = 0; coin < common.uniqueSize(); coin++)
-					{
-						pw.println("Coin Code,Exchange,Market,Buy,Sell,Last,Volume");
+					{	
 						for (int exchcoin = 0; exchcoin < common.commonSize(coin); exchcoin++)
 						{
 							Coin c = common.getCommonCoinRow(coin).get(exchcoin);
@@ -2020,24 +2090,26 @@ class RavenGUI
 			for (int coin = 0; coin < coins.size(); coin++)
 				exchcount.put(coins.get(coin).getExchange(), exchcount.get(coins.get(coin).getExchange()) + 1);
 			
-			double [] series = new double[exchcount.size()];
+			double [] yseries = new double[exchcount.size()];
 			
 			//Output the HashMap's values to a Double array
 			int i = 0;
 			for (Entry<String, Integer> entry : exchcount.entrySet())
 			{
 				 String key = entry.getKey();
-				 series[i] = exchcount.get(key);
+				 yseries[i] = exchcount.get(key);
 				 i++;
 			}
 			
 			//Apply series to the chart
 			ISeriesSet seriesset = mainchart.getSeriesSet();
-			ISeries ser = seriesset.createSeries(SeriesType.BAR, "Coin");
-			ser.setYSeries(series);
+			IBarSeries series = (IBarSeries) seriesset.createSeries(SeriesType.BAR, "Coin");
 			
-			ser.getLabel().setFormat("##.#");
-			ser.getLabel().setVisible(true);
+			series.getLabel().setFormat("#");
+			series.getLabel().setVisible(true);
+			series.setYSeries(yseries);
+			series.setBarColor(mainFormDark);
+			series.setBarPadding(40);
 			
 			IAxisSet xset = mainchart.getAxisSet();
 			IAxis xAxis = xset.getXAxis(0);
@@ -2045,6 +2117,9 @@ class RavenGUI
 			xAxis.setCategorySeries(names);
 			xAxis.enableCategory(true);
 			
+			//Color the data
+			series.getLabel().setForeground(textColor);
+						
 			//Adjust the range so all the data can be seen at the same time
 			mainchart.getAxisSet().adjustRange();
 		}
@@ -2110,11 +2185,13 @@ class RavenGUI
 			
 			//Apply the double [] series to the chart, appropriately labeling
 			ISeriesSet seriesset = mainchart.getSeriesSet();
-			ISeries ser = seriesset.createSeries(SeriesType.BAR, "Coin");
+			IBarSeries ser = (IBarSeries) seriesset.createSeries(SeriesType.BAR, "Coin");
 			ser.setYSeries(yseries);
 			
-			ser.getLabel().setFormat("##.#");
+			ser.getLabel().setFormat("##.0000#");
 			ser.getLabel().setVisible(true);
+			ser.setBarColor(mainFormDark);
+			ser.setBarPadding(40);
 			
 			IAxisSet xset = mainchart.getAxisSet();
 			IAxis xAxis = xset.getXAxis(0);
