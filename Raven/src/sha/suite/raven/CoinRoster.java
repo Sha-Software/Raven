@@ -733,7 +733,7 @@ public class CoinRoster
 		if (JSON.length() > 0)
 		{
 			//Remove "&quot;" if it exists
-			if (strrep(JSON, "&quot;", "\""))
+			if ((JSON = strrep(JSON, "&quot;", "\"")) != null)
 			{
 				//JSON sanitized, process using JSONObjects
 				JSONObject j = new JSONObject(JSON);
@@ -746,12 +746,13 @@ public class CoinRoster
 					Coin t = null;
 					for (int i = 0; i < ja.length(); i++)
 					{
-						t = new Coin();
-						j = ja.getJSONObject(i);
 						String code = jn.getString(i);
 						
 						if (code.length() == 6)
 						{
+							t = new Coin();
+							j = ja.getJSONObject(i);
+							
 							t.setExch(_exch);
 							t.setPriCode(code.substring(0, 3));
 							t.setSecCode(code.substring(3));
@@ -759,10 +760,12 @@ public class CoinRoster
 							t.setVolume(j.getDouble("volume"));
 							t.setBuy(j.getDouble("ask"));
 							t.setSell(t.getBuy());
+							
+							addCoin(t);
 						}
 					}
 				}
-				
+				_validProcessing = true;
 			}
 		}
 	}
@@ -1176,9 +1179,9 @@ public class CoinRoster
 	 * @param container - The main string where occurences take place
 	 * @param stringToReplace - String to be replaced
 	 * @param newString - String to be inserted
-	 * @return <ul><li><b>false</b> if <i>stringToReplace</i> does not exist in <i>container</i> or any one of the arguments has length == 0.</li><li><b>true</b> if the operation was completed successfully.</li></ul>
+	 * @return <b>null</b> if operation could not be completed. If successful, returns <b>container</b> String after processing.
 	 */
-	public boolean strrep(String container, String stringToReplace, String newString)
+	public String strrep(String container, String stringToReplace, String newString)
 	{
 		int start = 0;
 		int length = stringToReplace.length();
@@ -1192,11 +1195,11 @@ public class CoinRoster
 					String rightsplit = container.substring(start + length);
 					container = container.substring(0, start) + newString + rightsplit;
 				}
-				return true;
+				return container;
 			}
 			else
-				return false;
+				return null;
 		else
-			return false;
+			return null;
 	}
 }

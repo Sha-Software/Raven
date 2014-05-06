@@ -27,9 +27,9 @@ coins-e,F
 fxbtc,T
 kraken,F
 mcxnow,F
-mintpal,T
+mintpal,F
 okcoin,F
 prelude,F
 poloniex,F
-the rock trading,F
+the rock trading,T
 vircurex,F

@@ -201,7 +201,10 @@ class CommonCoins
 			}
 			
 			//Sort coins (sorts by primary code)
-			quicksort(0, _coins.size() - 1);
+			if (_coins.size() > 0)
+				quicksort(0, _coins.size() - 1);
+			else
+				System.out.println("QUICKSORT ERROR - Nothing to sort! _coins length == 0");
 			
 			return "UPDATE: Finished!";
 		}
