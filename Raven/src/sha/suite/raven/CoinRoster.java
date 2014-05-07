@@ -177,7 +177,7 @@ public class CoinRoster
 	
 	/*
 	 * process<Exchange>() methods and GetAllMarketInfo(<exchange>) are distinct functions in order to
-	 * separate HTML/JSON collection and raw JSON processing.
+	 * separate HTML/JSON collection and JSON processing.
 	 */
 	private void processCryptsy() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{		
@@ -588,7 +588,7 @@ public class CoinRoster
 	
 	private void processPrelude() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
-		RavenGUI.log(_exch + COLLECTING_STRING);
+		RavenGUI.log(_exch + COLLECTING_STRING + " (1/2)");
 		String BTCJSON = GetAllMarketInfo(PRELUDE_MARKET_BTC);
 		
 		if (BTCJSON.length() > 0)
@@ -623,9 +623,10 @@ public class CoinRoster
 			_validProcessing = true;
 		}
 		
+		RavenGUI.log(_exch + COLLECTING_STRING + " (2/2)");
 		String USDJSON = GetAllMarketInfo(PRELUDE_MARKET_USD);
 		if (USDJSON.length() > 0)
-		{
+		{			
 			JSONArray ja = new JSONArray(USDJSON);
 			Coin tc = null;
 			RavenGUI.log(this._exch + ": " + PROCESSING);
@@ -636,7 +637,8 @@ public class CoinRoster
 				JSONObject j = ja.getJSONObject(i);
 				
 				tc.setExch(_exch);
-				tc.setPriCode(j.getString(j.names().get(0).toString()));
+				//tc.setPriCode(j.getString(j.names().get(0).toString()));]
+				tc.setPriCode(j.names().get(0).toString());
 				tc.setSecCode("USD");
 
 				String volume = j.getString("volume");
@@ -664,6 +666,7 @@ public class CoinRoster
 		Coin t = null;
 		if (JSON[0].length() > 0)
 		{
+			RavenGUI.log(_exch + ": " + PROCESSING);
 			j = new JSONObject(JSON[0]);
 			if (j.getBoolean("result"))
 			{
@@ -735,6 +738,7 @@ public class CoinRoster
 		String JSON = GetAllMarketInfo(ROCK_TRADING_URL);
 		if (JSON.length() > 0)
 		{
+			RavenGUI.log(_exch + ": " + PROCESSING);
 			//Remove "&quot;" if it exists
 			if ((JSON = strrep(JSON, "&quot;", "\"")) != null)
 			{
@@ -782,6 +786,7 @@ public class CoinRoster
 //		
 //		if (JSON.length() > 0)
 //		{
+//			RavenGUI.log(_exch + ": " + PROCESSING);
 //			JSONArray ja = new JSONArray(JSON);
 //			Coin t = null;
 //			for (int i = 0; i < ja.length(); i++)
@@ -812,6 +817,7 @@ public class CoinRoster
 		
 		if (JSON.length() > 0)
 		{
+			RavenGUI.log(_exch + ": " + PROCESSING);
 			JSONArray ja = new JSONArray(JSON);
 			Coin t = new Coin();
 			
@@ -852,6 +858,7 @@ public class CoinRoster
 		
 		if (JSON.length() > 0)
 		{
+			RavenGUI.log(_exch + ": " + PROCESSING);
 			JSONObject j = new JSONObject(JSON);
 			JSONArray jn = j.names();
 			JSONArray ja = j.toJSONArray(jn);
@@ -885,8 +892,6 @@ public class CoinRoster
 					addCoin(t);
 				}
 			}
-		
-			
 			_validProcessing = true;
 		}
 	}
@@ -961,7 +966,6 @@ public class CoinRoster
 		String JSON = "";
 		String temp = "";
 		String charset = null;
-		String contentType = null;
 		
 		//Construct URL
 		try

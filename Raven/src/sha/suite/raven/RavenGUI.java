@@ -15,6 +15,7 @@ import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -1168,6 +1169,11 @@ class RavenGUI
 		final Button recurringUpdatesBut = new Button(setshell, SWT.CHECK);
 		final Button showPopupOnLoadBut = new Button(setshell, SWT.CHECK);
 		final Button showChartLabelsBut = new Button(setshell, SWT.CHECK);
+		//final Button smartLabelsBut = new Button(setshell, SWT.CHECK);
+		/*
+		 * smartLabels: label format changes to smaller form (#.### -> #.##) as more and more
+		 * items appear on the x axis, so as to maintain readability
+		 */
 		
 		final Text recurringUpdatesInterval = new Text(setshell, SWT.BORDER);
 		
@@ -1305,7 +1311,8 @@ class RavenGUI
 					runPopupOnLoad = showPopupOnLoadBut.getSelection();
 					
 					displayChartLabel = showChartLabelsBut.getSelection();
-					mainchart.getSeriesSet().getSeries("Coin").getLabel().setVisible(displayChartLabel);
+					if (mainchart.getSeriesSet().getSeries().length > 0)
+							mainchart.getSeriesSet().getSeries("Coin").getLabel().setVisible(displayChartLabel);
 					mainchart.redraw();
 					
 					commitUpdatesBut.setText("Commit each update to CSV");
@@ -2231,7 +2238,7 @@ class RavenGUI
 		int sel = coinlist.getSelectionIndex();
 		if (sel != -1)
 		{
-			Map<String, Integer>exchcount = new HashMap<String, Integer>();
+			Map<String, Integer> exchcount = new HashMap<String, Integer>();
 			for (int i = 0; i < exchangeNames.size(); i++)
 				exchcount.put(exchangeNames.get(i), 0);
 			
@@ -2241,15 +2248,13 @@ class RavenGUI
 				exchcount.put(coins.get(coin).getExchange(), exchcount.get(coins.get(coin).getExchange()) + 1);
 			
 			double [] yseries = new double[exchcount.size()];
+			//Create a string array containing the keys to exchcount and sort them
+			String [] keys = exchcount.keySet().toArray(new String [exchcount.size()]);
+			Arrays.sort(keys);
 			
-			//Output the HashMap's values to a Double array
-			int i = 0;
-			for (Entry<String, Integer> entry : exchcount.entrySet())
-			{
-				 String key = entry.getKey();
-				 yseries[i] = exchcount.get(key);
-				 i++;
-			}
+			for (int k = 0; k < keys.length; k++)
+				yseries[k] = exchcount.get(keys[k]);
+			
 			
 			//Apply series to the chart
 			ISeriesSet seriesset = mainchart.getSeriesSet();
@@ -2269,7 +2274,7 @@ class RavenGUI
 			
 			//Angle x axis text if necessary
 			if (names.length > 6)
-				xAxis.getTick().setTickLabelAngle(45);
+				xAxis.getTick().setTickLabelAngle(60);
 			else
 				xAxis.getTick().setTickLabelAngle(0);
 			
@@ -2361,7 +2366,7 @@ class RavenGUI
 			
 			//Angle x axis text if necessary
 			if (names.length > 6)
-				xAxis.getTick().setTickLabelAngle(45);
+				xAxis.getTick().setTickLabelAngle(60);
 			else
 				xAxis.getTick().setTickLabelAngle(0);
 			
