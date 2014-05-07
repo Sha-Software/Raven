@@ -399,23 +399,22 @@ class RavenGUI
 		exchangeUrls.put("COINEX", "http://coinex.pw/");
 		exchangeUrls.put("BTER", "https://bter.com/");
 		exchangeUrls.put("BTC-E", "https://btc-e.com/");
-//		exchangeUrls.put("okcoin", "");
+//		exchangeUrls.put("OKCOIN", "");
+		exchangeUrls.put("BITKONAN", "https://bitkonan.com/");
 		exchangeUrls.put("BITSTAMP", "https://www.bitstamp.net/");
 		exchangeUrls.put("BITFINEX", "https://www.bitfinex.com/");
 		exchangeUrls.put("MINTPAL", "https://www.mintpal.com/market");
-//		exchangeUrls.put("fxbtc", "");
+		exchangeUrls.put("FXBTC", "https://www.fxbtc.com/");
 		exchangeUrls.put("KRAKEN", "https://www.kraken.com/market");
-//		exchangeUrls.put("mcxnow", "");
+//		exchangeUrls.put("MCXNOW", "");
 		exchangeUrls.put("POLONIEX", "https://poloniex.com/exchange");
 		exchangeUrls.put("PRELUDE", "https://prelude.io/");
-//		exchangeUrls.put("vircurex", "");
-//		exchangeUrls.put("the rock trading", "");
-//		exchangeUrls.put("crypto-trade", "");
-//		exchangeUrls.put("coinedup", "");
+//		exchangeUrls.put("VIRCUREX", "");
+		exchangeUrls.put("THE ROCK TRADING", "https://www.therocktrading.com/exchange/currency");
+//		exchangeUrls.put("CRYPTO-TRADE", "");
+//		exchangeUrls.put("COINEDUP", "");
 		exchangeUrls.put("BITTREX", "https://bittrex.com/");
-//		exchangeUrls.put("atomic-trade", "");
-//		exchangeUrls.put("coins-e", "");
-//		exchangeUrls.put("cryptonit", "");
+		exchangeUrls.put("ATOMIC-TRADE", "https://www.atomic-trade.com/markets");
 		
 		maindata = new GridData[MAINFORM_COUNT];
 		for (int i = 0; i < MAINFORM_COUNT; i++) maindata[i] = new GridData();
@@ -1666,6 +1665,7 @@ class RavenGUI
 				//RESET DEFAULT EXCHANGES
 				pw.println("atomic trade,F");
 				pw.println("bitfinex,T");
+				pw.println("bitkonan,T");
 				pw.println("bitstamp,T");
 				pw.println("bittrex,T");
 				pw.println("btc-e,F");

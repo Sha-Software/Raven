@@ -64,6 +64,8 @@ public class CoinRoster
 	final String FXBTC_3 = "https://data.fxbtc.com/api?op=query_ticker&symbol=ltc_btc";
 	
 	final String ROCK_TRADING_URL = "https://www.therocktrading.com/api/tickers";
+	final String ATOMIC_TRADE_URL = "https://www.atomic-trade.com/SimpleAPI?a=marketsv2";
+	final String BITKONAN_URL = "https://bitkonan.com/api/";
 	
 	final String COLLECTING_STRING = ": Collecting market information";
 	final String PROCESSING = "Processing individual coin info";
@@ -151,6 +153,14 @@ public class CoinRoster
 				processFxbtc();
 			else if (_exch.contentEquals("THE ROCK TRADING"))
 				processRockTrading();
+			else if (_exch.contentEquals("ATOMIC TRADE"))
+				processAtomicTrade();
+			else if (_exch.contentEquals("BITKONAN"))
+				processBitkonan();
+			else if (_exch.contentEquals("BTC-E"))
+				processBtc_e();
+			else if (_exch.contentEquals("OKCOIN"))
+				processOKCoin();
 			else
 				RavenGUI.log("Exchange \"" + _exch + "\" is not supported by Raven.");
 		}
@@ -201,63 +211,52 @@ public class CoinRoster
 		_validProcessing = true;
 	}
 	
-	private void processCoinex()
+	private void processCoinex() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
 		RavenGUI.log("COINEX: Collecting market information");
-		try
+		String JSON = GetAllMarketInfo(COINEX_URL);
+		
+		if (JSON.length() > 0)
 		{
-			String JSON = GetAllMarketInfo(COINEX_URL);
+			Coin tempC = null;
+			JSONObject j = new JSONObject(JSON);
 			
-			if (JSON.length() > 0)
-			{
-				Coin tempC = null;
-				JSONObject j = new JSONObject(JSON);
-				
-				JSONObject.testValidity(JSON);
-				
-				JSONArray ja = j.toJSONArray(j.names());
-				ja = j.getJSONArray("trade_pairs");
-				
-				RavenGUI.log(this._exch + ": " + PROCESSING);
-				for (int i = 0; i < ja.length(); i++)
-				{
-					tempC = new Coin();
-					//RavenGUI.log(ja.get(i));
-					j = ja.getJSONObject(i);
-					
-					//Set coin info (using literals to decrease memory accesses)
-					tempC.setExch(("COINEX"));
-					
-					String temp = j.getString("url_slug");
-					tempC.setSecCode(temp.substring(temp.indexOf("_") + 1, temp.length() - 1)); //1st half of url_slug
-					tempC.setPriCode(temp.substring(0, temp.indexOf("_"))); //2nd half of url_slug
-					tempC.setVolume(j.getDouble("currency_volume"));
-					tempC.setLastTrade(j.getDouble("last_price"));
-					tempC.setBuy(j.getDouble("buy_fee"));
-					tempC.setSell(j.getDouble("sell_fee"));
-					
-					if (tempC.getSecCode().contentEquals("BT"))
-						tempC.setSecCode("BTC");
-					else if (tempC.getSecCode().contentEquals("LT"))
-						tempC.setSecCode("LTC");
-					else if (tempC.getSecCode().contentEquals("DOG"))
-						tempC.setSecCode("DOGE");
-					
-					//Add tempC to _roster so this CoinRoster object may track it properly
-					addCoin(tempC);
-				}
-				_validProcessing = true;
+			JSONObject.testValidity(JSON);
 			
-			}
-			else
+			JSONArray ja = j.toJSONArray(j.names());
+			ja = j.getJSONArray("trade_pairs");
+			
+			RavenGUI.log(this._exch + ": " + PROCESSING);
+			for (int i = 0; i < ja.length(); i++)
 			{
-				_validProcessing = false;
+				tempC = new Coin();
+				//RavenGUI.log(ja.get(i));
+				j = ja.getJSONObject(i);
+				
+				//Set coin info (using literals to decrease memory accesses)
+				tempC.setExch(("COINEX"));
+				
+				String temp = j.getString("url_slug");
+				tempC.setSecCode(temp.substring(temp.indexOf("_") + 1, temp.length() - 1)); //1st half of url_slug
+				tempC.setPriCode(temp.substring(0, temp.indexOf("_"))); //2nd half of url_slug
+				tempC.setVolume(j.getDouble("currency_volume"));
+				tempC.setLastTrade(j.getDouble("last_price"));
+				tempC.setBuy(j.getDouble("buy_fee"));
+				tempC.setSell(j.getDouble("sell_fee"));
+				
+				if (tempC.getSecCode().contentEquals("BT"))
+					tempC.setSecCode("BTC");
+				else if (tempC.getSecCode().contentEquals("LT"))
+					tempC.setSecCode("LTC");
+				else if (tempC.getSecCode().contentEquals("DOG"))
+					tempC.setSecCode("DOGE");
+				
+				//Add tempC to _roster so this CoinRoster object may track it properly
+				addCoin(tempC);
 			}
-		}
-		catch (Exception e)
-		{
-			RavenGUI.log("-COINEX: Unable to collect JSON");
-		}
+			_validProcessing = true;
+		
+		}		
 	}
 	
 	//disabled
@@ -370,38 +369,39 @@ public class CoinRoster
 	
 	private void processBtc_e() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
 	{
-		RavenGUI.log(_exch + COLLECTING_STRING);
-		
-		String JSON = GetAllMarketInfo(BTC_E_URL);
-		try
-		{
-			if (JSON.length() > 0)
-			{
-				RavenGUI.log(this._exch + ": " + PROCESSING);
-				Coin tempC = new Coin();
-				JSONObject j = new JSONObject(JSON);
-				
-				//Traverse down JSON tree
-				j = j.getJSONObject("return");
-				
-				JSONArray ja = j.toJSONArray(j.names());
-				
-			}
-			else
-			{
-				_validProcessing = false;
-			}
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-			RavenGUI.log("--BTC-E: Unable to collect response");
-		}
+//		RavenGUI.log(_exch + COLLECTING_STRING);
+//		
+//		String JSON = GetAllMarketInfo(BTC_E_URL);
+//		try
+//		{
+//			if (JSON.length() > 0)
+//			{
+//				RavenGUI.log(this._exch + ": " + PROCESSING);
+//				Coin tempC = new Coin();
+//				JSONObject j = new JSONObject(JSON);
+//				
+//				//Traverse down JSON tree
+//				j = j.getJSONObject("return");
+//				
+//				JSONArray ja = j.toJSONArray(j.names());
+//				
+//			}
+//			else
+//			{
+//				_validProcessing = false;
+//			}
+//		}
+//		catch (Exception e)
+//		{
+//			e.printStackTrace();
+//			RavenGUI.log("--BTC-E: Unable to collect response");
+//		}
 	}
 	
 	private void processOKCoin()
 	{
-		RavenGUI.log(_exch + COLLECTING_STRING);
+		RavenGUI.log("--" + _exch + "Functionality currently disabled");
+//		RavenGUI.log(_exch + COLLECTING_STRING);
 	}
 	
 	private void processBitfinex() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
@@ -770,6 +770,78 @@ public class CoinRoster
 		}
 	}
 	
+	//disabled
+	private void processAtomicTrade() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
+	{
+		RavenGUI.log("--ATOMIC TRADE: Functionality currently disabled");
+//		RavenGUI.log(_exch + COLLECTING_STRING);
+//		String JSON = GetAllMarketInfo(ATOMIC_TRADE_URL);
+//		
+//		if (JSON.length() > 0)
+//		{
+//			JSONArray ja = new JSONArray(JSON);
+//			Coin t = null;
+//			for (int i = 0; i < ja.length(); i++)
+//			{
+//				JSONObject j = ja.getJSONObject(i);
+//				String code = j.getString("market");
+//				t = new Coin();
+//				
+//				t.setExch(_exch);
+//				t.setPriCode(code.substring(0, code.indexOf("/")));
+//				t.setSecCode(code.substring(code.indexOf("/") + 1));
+//				t.setLastTrade(j.getDouble("price"));
+//				t.setVolume(j.getDouble("volume"));
+//				t.setBuy(j.getDouble("price"));
+//				t.setSell(t.getBuy());
+//				
+//				addCoin(t);
+//			}
+//			
+//			_validProcessing = true;
+//		}
+	}
+	
+	private void processBitkonan() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
+	{
+		RavenGUI.log(_exch + COLLECTING_STRING);
+		String JSON = GetAllMarketInfo(BITKONAN_URL);
+		
+		if (JSON.length() > 0)
+		{
+			JSONArray ja = new JSONArray(JSON);
+			Coin t = new Coin();
+			
+			if (ja.length() > 0)
+			{
+				t.setExch(_exch);
+				t.setPriCode("BTC");
+				t.setSecCode("USD");
+				t.setLastTrade(ja.getJSONObject(0).getDouble("last"));
+				t.setVolume(ja.getJSONObject(0).getDouble("volume"));
+				t.setBuy(ja.getJSONObject(0).getDouble("ask"));
+				t.setSell(t.getBuy());
+				
+				addCoin(t);
+				_validProcessing = true;
+				
+				if (ja.length() > 1)
+				{
+					t = new Coin();
+					t.setExch(_exch);
+					t.setPriCode("LTC");
+					t.setSecCode("USD");
+					t.setLastTrade(ja.getJSONObject(1).getDouble("last"));
+					t.setVolume(ja.getJSONObject(1).getDouble("volume"));
+					t.setBuy(ja.getJSONObject(1).getDouble("ask"));
+					t.setSell(t.getBuy());
+					
+					addCoin(t);
+				}
+			}
+		}
+	}
+	
 	private void addCoin(Coin c) //------------------------------------------------------------
 	{
 		//Check if array is full (increase size by 10 if true)
@@ -863,7 +935,8 @@ public class CoinRoster
 				while ((temp = in.readLine()) != null)
 					JSON += temp;
 			}
-			else if (url.contains(COINEX_URL) || url.contains(BTER_TICKERS_URL) || url.contentEquals(FXBTC_1) || url.contentEquals(FXBTC_2) || url.contentEquals(FXBTC_3) || url.contentEquals(ROCK_TRADING_URL)) //COINEX CONNECT, BTER CONNECT, FXBTC CONNECT, ROCK TRADING CONNECT
+			else if (url.contains(COINEX_URL) || url.contains(BTER_TICKERS_URL) || url.contentEquals(FXBTC_1) || url.contentEquals(FXBTC_2) || url.contentEquals(FXBTC_3) || url.contentEquals(ROCK_TRADING_URL) || url.contentEquals(ATOMIC_TRADE_URL)) 
+			//COINEX CONNECT, BTER CONNECT, FXBTC CONNECT, ROCK TRADING CONNECT, ATOMIC TRADE CONNECT
 			{
 				//Open connection
 				URLConnection conn = exchurl.openConnection();
@@ -1133,6 +1206,30 @@ public class CoinRoster
 				}
 				JSON = JSON.substring(0, JSON.length() - 2);
 				JSON += "}]"; //close JSONArray
+			}
+			else if (url.contentEquals(BITKONAN_URL)) //BITKONAN CONNECT
+			{
+				URLConnection con = new URL(BITKONAN_URL + "ticker").openConnection();
+				con.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
+				con.setRequestProperty("Accept-Charset", "utf-8");
+				
+				in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+				
+				//Set up JSON to be a JSONArray
+				JSON = "[";
+				while ((temp = in.readLine()) != null)
+					JSON += temp;
+				
+				con = new URL(BITKONAN_URL + "ltc_ticker").openConnection();
+				con.setRequestProperty("User-agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0");
+				con.setRequestProperty("Accept-Charset", "utf-8");
+				in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+				
+				JSON += ",";
+				while ((temp = in.readLine()) != null)
+					JSON += temp;
+				
+				JSON += "]";
 			}
 		}
 		
