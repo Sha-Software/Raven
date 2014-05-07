@@ -66,6 +66,7 @@ public class CoinRoster
 	final String ROCK_TRADING_URL = "https://www.therocktrading.com/api/tickers";
 	final String ATOMIC_TRADE_URL = "https://www.atomic-trade.com/SimpleAPI?a=marketsv2";
 	final String BITKONAN_URL = "https://bitkonan.com/api/";
+	final String VIRCUREX_URL = "https://api.vircurex.com/api/get_info_for_currency.json";
 	
 	final String COLLECTING_STRING = ": Collecting market information";
 	final String PROCESSING = "Processing individual coin info";
@@ -161,6 +162,8 @@ public class CoinRoster
 				processBtc_e();
 			else if (_exch.contentEquals("OKCOIN"))
 				processOKCoin();
+			else if (_exch.contentEquals("VIRCUREX"))
+				processVircurex();
 			else
 				RavenGUI.log("Exchange \"" + _exch + "\" is not supported by Raven.");
 		}
@@ -842,6 +845,52 @@ public class CoinRoster
 		}
 	}
 	
+	private void processVircurex() throws ConnectException, UnsupportedEncodingException, IllegalStateException, NullPointerException
+	{
+		RavenGUI.log(_exch + COLLECTING_STRING);
+		String JSON = GetAllMarketInfo(VIRCUREX_URL);
+		
+		if (JSON.length() > 0)
+		{
+			JSONObject j = new JSONObject(JSON);
+			JSONArray jn = j.names();
+			JSONArray ja = j.toJSONArray(jn);
+			
+			Coin t = null;
+			String code = null;
+			
+			//Loop through each coin
+			for (int coin = 0; coin < ja.length() - 1; coin++) //minus 1 to ignore the integer at the end
+			{
+				j = ja.getJSONObject(coin);
+				JSONArray tjn = j.names(); //tjn == tempJsonNames
+				code = jn.getString(coin);
+				
+				JSONArray markets = j.toJSONArray(tjn);
+				
+				//Loop through each coin's markets
+				for (int mkt = 0; mkt < markets.length(); mkt++)
+				{
+					j = markets.getJSONObject(mkt);
+					t = new Coin();
+					
+					t.setExch(_exch);
+					t.setPriCode(code);
+					t.setSecCode(tjn.getString(mkt));
+					t.setLastTrade(j.getDouble("last_trade"));
+					t.setVolume(j.getDouble("volume"));
+					t.setBuy(j.getDouble("lowest_ask"));
+					t.setSell(t.getBuy());
+					
+					addCoin(t);
+				}
+			}
+		
+			
+			_validProcessing = true;
+		}
+	}
+	
 	private void addCoin(Coin c) //------------------------------------------------------------
 	{
 		//Check if array is full (increase size by 10 if true)
@@ -935,8 +984,8 @@ public class CoinRoster
 				while ((temp = in.readLine()) != null)
 					JSON += temp;
 			}
-			else if (url.contains(COINEX_URL) || url.contains(BTER_TICKERS_URL) || url.contentEquals(FXBTC_1) || url.contentEquals(FXBTC_2) || url.contentEquals(FXBTC_3) || url.contentEquals(ROCK_TRADING_URL) || url.contentEquals(ATOMIC_TRADE_URL)) 
-			//COINEX CONNECT, BTER CONNECT, FXBTC CONNECT, ROCK TRADING CONNECT, ATOMIC TRADE CONNECT
+			else if (url.contains(COINEX_URL) || url.contains(BTER_TICKERS_URL) || url.contentEquals(FXBTC_1) || url.contentEquals(FXBTC_2) || url.contentEquals(FXBTC_3) || url.contentEquals(ROCK_TRADING_URL) || url.contentEquals(ATOMIC_TRADE_URL) || url.contentEquals(VIRCUREX_URL)) 
+			//COINEX CONNECT, BTER CONNECT, FXBTC CONNECT, ROCK TRADING CONNECT, ATOMIC TRADE CONNECT, VIRCUREX CONNECT
 			{
 				//Open connection
 				URLConnection conn = exchurl.openConnection();

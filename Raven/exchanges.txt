@@ -13,24 +13,24 @@
 #
 # Use the # symbol if you want to write a comment in this file.
 atomic trade,F
-bitfinex,F
+bitfinex,T
 bitkonan,T
-bitstamp,F
-bittrex,F
+bitstamp,T
+bittrex,T
 btc-e,F
-bter,F
+bter,T
 crypto-trade,F
 cryptonit,F
-cryptsy,F
+cryptsy,T
 coinedup,F
-coinex,F
+coinex,T
 coins-e,F
-fxbtc,F
-kraken,F
+fxbtc,T
+kraken,T
 mcxnow,F
-mintpal,F
+mintpal,T
 okcoin,F
-prelude,F
-poloniex,F
-the rock trading,F
-vircurex,F
+prelude,T
+poloniex,T
+the rock trading,T
+vircurex,T

@@ -124,7 +124,7 @@ class RavenGUI
 	final private int RAVEN_MAIN_HEIGHT = 650;
 	
 	final private int RAVEN_SETTINGS_WIDTH = 485;
-	final private int RAVEN_SETTINGS_HEIGHT = 270;
+	final private int RAVEN_SETTINGS_HEIGHT = 300;
 	
 	//Layouts ------------------------------------------------------------
 	GridLayout mainlayout = null;
@@ -198,7 +198,7 @@ class RavenGUI
 	java.util.List<String> exchangelist = null;
 	Map<String,Boolean> requestedExchs = null;
 	int wantedExchs;
-	boolean runPopupOnLoad = false;
+	boolean runPopupOnLoad = true;
 	
 	//For recurring schedule
 	Timer updateTimer = null;
@@ -208,10 +208,15 @@ class RavenGUI
 	EP ep = null;
 	Popup popup = null;
 	
+	//Chart options
+	boolean displayChartLabel = true;
+	
 	//config.txt and exchanges.txt filepaths
 	final String EXCHANGE_FILE_PATH = "exchanges.txt";
 	final String CONFIG_FILE_PATH = "config.txt";
 	final String RAVEN_EXPORT_FOLDER = "\\Raven CSV Exports";
+	final String SETTINGS_MISSING = "wasn't found. Creating and setting it to default.";
+	final String SETTINGS_PRE = "SETTINGS: Setting";
 	
 	//For updating the main coin list
 	class EP extends Thread
@@ -1162,6 +1167,7 @@ class RavenGUI
 		final Button commitUpdatesBut = new Button(setshell, SWT.CHECK);
 		final Button recurringUpdatesBut = new Button(setshell, SWT.CHECK);
 		final Button showPopupOnLoadBut = new Button(setshell, SWT.CHECK);
+		final Button showChartLabelsBut = new Button(setshell, SWT.CHECK);
 		
 		final Text recurringUpdatesInterval = new Text(setshell, SWT.BORDER);
 		
@@ -1170,11 +1176,13 @@ class RavenGUI
 		Group exchangeGroup = new Group(setshell, SWT.SHADOW_NONE);
 		Group updateScheduling = new Group(setshell, SWT.SHADOW_NONE);
 		Group popupcheck = new Group(setshell, SWT.SHADOW_NONE);
+		Group chartgroup = new Group(setshell, SWT.SHADOW_NONE);
 		
 		//Positioning constants
 		final Rectangle EXCH_GROUP = new Rectangle(10, 10, 255, 200);
 		final Rectangle UPDATE_GROUP = new Rectangle(270, 10, 200, 100);
 		final Rectangle POPUP_GROUP = new Rectangle(270, 110, 200, 50);
+		final Rectangle CHART_GROUP = new Rectangle(270, 160, 200, 50);
 		
 		//Sizing and positioning ---------------------------------------------------------
 		setshell.setBounds(x - (RAVEN_SETTINGS_WIDTH / 2) + (RAVEN_MAIN_WIDTH / 2), y - (RAVEN_SETTINGS_HEIGHT / 2) + (RAVEN_MAIN_HEIGHT / 2), RAVEN_SETTINGS_WIDTH, RAVEN_SETTINGS_HEIGHT);
@@ -1186,6 +1194,7 @@ class RavenGUI
 		commitUpdatesBut.setLocation(280,30);
 		recurringUpdatesBut.setLocation(280,50);
 		showPopupOnLoadBut.setLocation(POPUP_GROUP.x + 10, POPUP_GROUP.y + 20);
+		showChartLabelsBut.setLocation(CHART_GROUP.x + 10, CHART_GROUP.y + 20);
 		
 		//Textboxes
 		recurringUpdatesInterval.setBounds(UPDATE_GROUP.x + 26, UPDATE_GROUP.y + 60, 60, 30);
@@ -1200,6 +1209,7 @@ class RavenGUI
 		exchangeGroup.setBounds(EXCH_GROUP);
 		updateScheduling.setBounds(UPDATE_GROUP);
 		popupcheck.setBounds(POPUP_GROUP);
+		chartgroup.setBounds(CHART_GROUP);
 		
 		//Information and dialogue -------------------------------------------------------
 		setshell.setText("Settings");
@@ -1221,6 +1231,10 @@ class RavenGUI
 		showPopupOnLoadBut.pack();
 		showPopupOnLoadBut.setToolTipText("When checked, a popup for information will appear every time Raven is launched.");
 		
+		showChartLabelsBut.setText("Show labels");
+		showChartLabelsBut.pack();
+		showChartLabelsBut.setToolTipText("Show or hide the numbers that rest in the middle of the bars on the chart.");
+		
 		//Textboxes
 		recurringUpdatesInterval.setFont(new Font(disp, LABELS_FONT, 16, SWT.NONE));
 		
@@ -1231,6 +1245,7 @@ class RavenGUI
 		exchangeGroup.setText("Select exchanges");
 		updateScheduling.setText("Update and Scheduling");
 		popupcheck.setText("Popups and notifications");
+		chartgroup.setText("Chart functions");
 		
 		//Exchange group processing
 		for (int i = 0; i < masterexchangelist.size(); i++)
@@ -1245,6 +1260,7 @@ class RavenGUI
 		recurringUpdatesBut.setSelection(scheduleUpdates);
 		recurringUpdatesInterval.setText(Long.toString(scheduledUpdateInterval));
 		showPopupOnLoadBut.setSelection(runPopupOnLoad);
+		showChartLabelsBut.setSelection(displayChartLabel);
 		
 		
 		//Event handlers -----------------------------------------------------------------
@@ -1287,6 +1303,10 @@ class RavenGUI
 					scheduleUpdates = recurringUpdatesBut.getSelection();
 					scheduledUpdateInterval = Long.parseLong(recurringUpdatesInterval.getText());
 					runPopupOnLoad = showPopupOnLoadBut.getSelection();
+					
+					displayChartLabel = showChartLabelsBut.getSelection();
+					mainchart.getSeriesSet().getSeries("Coin").getLabel().setVisible(displayChartLabel);
+					mainchart.redraw();
 					
 					commitUpdatesBut.setText("Commit each update to CSV");
 					commitUpdatesBut.pack();
@@ -1615,6 +1635,7 @@ class RavenGUI
 				pw.println("INTERVAL_UPDATE:false");
 				pw.println("INTERVAL_UPDATE_TIME:5");
 				pw.println("RUN_POPUP_ONLOAD:true");
+				pw.println("CHART_LABEL:true");
 				
 				//Reset settings currently in memory
 				commitUpdates = false;
@@ -1684,7 +1705,7 @@ class RavenGUI
 				pw.println("prelude,T");
 				pw.println("poloniex,T");
 				pw.println("the rock trading,T");
-				pw.println("vircurex,F");
+				pw.println("vircurex,T");
 				
 				//Reset settings currently in memory
 				exchangelist = new ArrayList<String>();
@@ -1739,18 +1760,22 @@ class RavenGUI
 			}catch (IOException e1){e1.printStackTrace();}
 		}//end of config.txt allocation/creation
 		
+		
+		//Read settings from config.txt
 		settings = new BufferedReader(frIn);
 		String temp;
 		try
 		{
+			//Read each setting into a hashmap
 			Map<String, Object> userSettings = new HashMap<String, Object>();
 			
 			temp = settings.readLine();
 			while (temp != null)
 			{
+				//Check if this line is a comment or newline
 				if (!temp.startsWith("#") && temp.trim().length() > 0)
 				{
-					//Read settings into a HashMap
+					//Put setting into hashmap
 					userSettings.put(temp.substring(0, temp.indexOf(":")), temp.substring(temp.indexOf(":") + 1));
 				}
 				//Get next line
@@ -1760,45 +1785,96 @@ class RavenGUI
 			//Apply settings ------------------------------------------------------------------------------
 			//---------------------------------------------------------------------------------------------
 			
-			//Recurring schedule settings
+			//Update on intervals setting
 			boolean activeSchedule = false;
-			try {activeSchedule = (userSettings.get("INTERVAL_UPDATE").toString().equalsIgnoreCase("true")) ? true : false;}
-			catch (NullPointerException npe)
+			if (userSettings.containsKey("INTERVAL_UPDATE"))
 			{
-				log("SETTINGS: Error loading INTERVAL_UPDATE boolean, using default (false)");
+				//Recurring schedule settings
+				try {activeSchedule = (userSettings.get("INTERVAL_UPDATE").toString().equalsIgnoreCase("true")) ? true : false;}
+				catch (NullPointerException npe)
+				{
+					log("SETTINGS: Error loading INTERVAL_UPDATE boolean, using default (false)");
+				}
 			}
+			else
+			{
+				log(SETTINGS_PRE + " INTERVAL_UPDATE " + SETTINGS_MISSING);
+			}
+			
+			//Commit per update setting
 			boolean commitPerUpdate = false;
-			try {commitPerUpdate = (userSettings.get("UPDATE_COMMIT").toString().equalsIgnoreCase("true")) ? true : false;}
-			catch (NullPointerException npe)
+			if (userSettings.containsKey("UPDATE_COMMIT"))
 			{
-				log("SETTINGS: Error loading UPDATE_COMMIT boolean, using default (false)");
+				try {commitPerUpdate = (userSettings.get("UPDATE_COMMIT").toString().equalsIgnoreCase("true")) ? true : false;}
+				catch (NullPointerException npe)
+				{
+					log("SETTINGS: Error loading UPDATE_COMMIT boolean, using default (false)");
+				}
+			}
+			else
+			{
+				log(SETTINGS_PRE + " UPDATE_COMMIT " + SETTINGS_MISSING);
 			}
 			
-			long interval = 0;
-			try
+			//Update interval time limit setting
+			if (userSettings.containsKey("INTERVAL_UPDATE_TIME"))
 			{
-				interval = Long.parseLong(userSettings.get("INTERVAL_UPDATE_TIME").toString());
-				setRecurringUpdate(activeSchedule, interval, commitPerUpdate);
+				long interval = 0;
+				try
+				{
+					interval = Long.parseLong(userSettings.get("INTERVAL_UPDATE_TIME").toString());
+					setRecurringUpdate(activeSchedule, interval, commitPerUpdate);
+				}
+				catch (NumberFormatException nfe)
+				{
+					log("SETTINGS: Error loading INTERVAL_UPDATE_TIME number, using default (5 min) instead.");
+					setRecurringUpdate(activeSchedule, 60000*5, commitPerUpdate);
+				}
+				catch (NullPointerException npe)
+				{
+					log("SETTINGS: Error loading INTERVAL_UPDATE_TIME number, using default (5 min) instead.");
+					setRecurringUpdate(activeSchedule, 60000*5, commitPerUpdate);
+				}
 			}
-			catch (NumberFormatException nfe)
+			else
 			{
-				log("SETTINGS: Error loading INTERVAL_UPDATE_TIME number, using default (5 min) instead.");
-				setRecurringUpdate(activeSchedule, 60000*5, commitPerUpdate);
-			}
-			catch (NullPointerException npe)
-			{
-				log("SETTINGS: Error loading INTERVAL_UPDATE_TIME number, using default (5 min) instead.");
+				log(SETTINGS_PRE + " INTERVAL_UPDATE_TIME " + SETTINGS_MISSING);
 				setRecurringUpdate(activeSchedule, 60000*5, commitPerUpdate);
 			}
 			
-			//Popup setting
-			try	{runPopupOnLoad = (userSettings.get("RUN_POPUP_ONLOAD").toString().equalsIgnoreCase("true")) ? true : false;}
-			catch (NullPointerException npe)
+			//Open info popup when program loads setting
+			if (userSettings.containsKey("RUN_POPUP_ONLOAD"))
 			{
-				log("SETTINGS: Error loading RUN_POPUP_ONLOAD, using default (true)");
+				//Popup setting
+				try	{runPopupOnLoad = (userSettings.get("RUN_POPUP_ONLOAD").toString().equalsIgnoreCase("true")) ? true : false;}
+				catch (NullPointerException npe)
+				{
+					log("SETTINGS: Error loading RUN_POPUP_ONLOAD, using default (true)");
+					runPopupOnLoad = true;
+				}
+			}
+			else
+			{
+				log(SETTINGS_PRE + " RUN_POPUP_ONLOAD " + SETTINGS_MISSING);
 				runPopupOnLoad = true;
 			}
 			
+			//Show labels on the chart setting
+			if (userSettings.containsKey("CHART_LABEL"))
+			{
+				try	{displayChartLabel = (userSettings.get("CHART_LABEL").toString().equalsIgnoreCase("true")) ? true : false;}
+				catch (NullPointerException npe)
+				{
+					log("SETTINGS: Error loading CHART_LABEL, using default (true)");
+					displayChartLabel = true;
+				}
+			}
+			else
+			{
+				log(SETTINGS_PRE + " CHART_LABEL " + SETTINGS_MISSING);
+				displayChartLabel = true;
+			}
+				
 			
 			
 			//Other settings
@@ -1956,6 +2032,7 @@ class RavenGUI
 			pw.println("INTERVAL_UPDATE:" + Boolean.toString(scheduleUpdates));
 			pw.println("INTERVAL_UPDATE_TIME:" + Long.toString(scheduledUpdateInterval));
 			pw.println("RUN_POPUP_ONLOAD:" + Boolean.toString(runPopupOnLoad));
+			pw.println("CHART_LABEL:" + Boolean.toString(displayChartLabel));
 			
 		}
 		catch (IOException e1)
@@ -2178,8 +2255,10 @@ class RavenGUI
 			ISeriesSet seriesset = mainchart.getSeriesSet();
 			IBarSeries series = (IBarSeries) seriesset.createSeries(SeriesType.BAR, "Coin");
 			
+			//Check if user wants to display chart labels
 			series.getLabel().setFormat("#");
-			series.getLabel().setVisible(true);
+			series.getLabel().setVisible(displayChartLabel);
+			
 			series.setYSeries(yseries);
 			series.setBarColor(mainFormDark);
 			series.setBarPadding(40);
@@ -2187,6 +2266,13 @@ class RavenGUI
 			IAxisSet xset = mainchart.getAxisSet();
 			IAxis xAxis = xset.getXAxis(0);
 			String [] names = exchangeNames.toArray(new String[exchangeNames.size()]);
+			
+			//Angle x axis text if necessary
+			if (names.length > 6)
+				xAxis.getTick().setTickLabelAngle(45);
+			else
+				xAxis.getTick().setTickLabelAngle(0);
+			
 			xAxis.setCategorySeries(names);
 			xAxis.enableCategory(true);
 			
@@ -2217,8 +2303,6 @@ class RavenGUI
 			case 'v':
 				title = "Volume";
 				break;
-			default:
-				
 		}
 			
 		mainchart.getTitle().setText(title);
@@ -2261,14 +2345,26 @@ class RavenGUI
 			IBarSeries ser = (IBarSeries) seriesset.createSeries(SeriesType.BAR, "Coin");
 			
 			ser.setYSeries(yseries);
+			
+			//Check if user wants chart labels
+			
 			ser.getLabel().setFormat("##.0000#");
-			ser.getLabel().setVisible(true);
+			ser.getLabel().setVisible(displayChartLabel);
+			
 			ser.setBarColor(mainFormDark);
 			ser.setBarPadding(40);
 			
 			IAxisSet xset = mainchart.getAxisSet();
+		
 			IAxis xAxis = xset.getXAxis(0);
 			String [] names = codes.toArray(new String[codes.size()]);
+			
+			//Angle x axis text if necessary
+			if (names.length > 6)
+				xAxis.getTick().setTickLabelAngle(45);
+			else
+				xAxis.getTick().setTickLabelAngle(0);
+			
 			xAxis.setCategorySeries(names);
 			xAxis.enableCategory(true);
 		}
