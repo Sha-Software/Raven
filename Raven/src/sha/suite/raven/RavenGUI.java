@@ -1701,6 +1701,7 @@ class RavenGUI
 				pw.println("crypto-trade,F");
 				pw.println("cryptonit,F");
 				pw.println("cryptsy,T");
+				pw.println("comkort, T");
 				pw.println("coinedup,F");
 				pw.println("coinex,T");
 				pw.println("coins-e,F");
