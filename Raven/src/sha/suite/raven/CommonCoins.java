@@ -35,12 +35,29 @@ class CommonCoins
 	}
 	
 	/**
-	 * <p>Returns an array containing common coins over different exchanges.</p>
+	 * <p>Returns a List<Coin> object containing common coins over different exchanges</p>
 	 * @return
 	 */
 	public List<Coin> getCommonCoinRow(int coin)
 	{
 		return _coins.get(coin);
+	}
+	
+	/**
+	 * <p>Returns a List<Coin> object containing common coins over different exchanges</p>
+	 * @param coin
+	 * @return
+	 */
+	public List<Coin> getCommonCoinRow(String coin)
+	{
+		for (int i = 0; i < _coins.size(); i++)
+		{
+			if (coin.toUpperCase().contentEquals(_coins.get(i).get(0).getPriCode().toUpperCase()))
+			{
+				return _coins.get(i);
+			}
+		}
+		return null;
 	}
 	
 	/**

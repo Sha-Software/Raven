@@ -125,7 +125,7 @@ class RavenGUI
 	final private int RAVEN_MAIN_HEIGHT = 650;
 	
 	final private int RAVEN_SETTINGS_WIDTH = 485;
-	final private int RAVEN_SETTINGS_HEIGHT = 300;
+	final private int RAVEN_SETTINGS_HEIGHT = 350;
 	
 	//Layouts ------------------------------------------------------------
 	GridLayout mainlayout = null;
@@ -211,6 +211,10 @@ class RavenGUI
 	
 	//Chart options
 	boolean displayChartLabel = true;
+	
+	//Coin list options
+	boolean showSingularCoins = false;
+	boolean showSingularExchs = false;
 	
 	//config.txt and exchanges.txt filepaths
 	final String EXCHANGE_FILE_PATH = "exchanges.txt";
@@ -576,47 +580,53 @@ class RavenGUI
 		 		sellTolist.setEnabled(false);
 		 		
 				//Get a common coin list
-				int selection = coinlist.getSelectionIndex();
+				String selection = coinlist.getItem(coinlist.getSelectionIndex());
+				selection = selection.substring(0, selection.indexOf(" ("));
 				exchlist = common.getCommonCoinRow(selection);
 				
-				//Build a unique list of exchanges
-				processNames(exchlist, true);
-				
-				//Build a unique list of markets
-				processNames(exchlist, false);
-				
-				if (chartfunction.contentEquals(COIN_DISTRO))
-					coindistro();
-				else if (chartfunction.contentEquals(BUY_SPEC))
-					numspectrum('b');
-				else if (chartfunction.contentEquals(SELL_SPEC))
-					numspectrum('s');
-				else if (chartfunction.contentEquals(VOL_SPEC))
-					numspectrum('v');
-				else if (chartfunction.contentEquals(PRICE_TIME))
-					priceovertime();
-				
-				display.asyncExec(new Runnable()
+				if (exchlist != null)
 				{
-					@Override
-					public void run()
-					{	
-						//Change title to reflect the coin selected
-						 
-						shell.setText(RAVEN_MAINSHELL_TITLE + " - " + (selectedCoinCode = exchlist.get(0).getPriCode()));
-						
-						//Clean lists to prepare for fresh input
-						buyFromlist.removeAll();
-						sellTolist.removeAll();
-						resetTable();
-						
-						//Update the buyFrom and sellTo lists
-						for (String s : exchangeNames)
-						{
-							buyFromlist.add(s);
+					//Build a unique list of exchanges
+					processNames(exchlist, true);
+					
+					//Build a unique list of markets
+					processNames(exchlist, false);
+					
+					if (chartfunction.contentEquals(COIN_DISTRO))
+						coindistro();
+					else if (chartfunction.contentEquals(BUY_SPEC))
+						numspectrum('b');
+					else if (chartfunction.contentEquals(SELL_SPEC))
+						numspectrum('s');
+					else if (chartfunction.contentEquals(VOL_SPEC))
+						numspectrum('v');
+					else if (chartfunction.contentEquals(PRICE_TIME))
+						priceovertime();
+					
+					display.asyncExec(new Runnable()
+					{
+						@Override
+						public void run()
+						{	
+							//Change title to reflect the coin selected
+							 
+							shell.setText(RAVEN_MAINSHELL_TITLE + " - " + (selectedCoinCode = exchlist.get(0).getPriCode()));
+							
+							//Clean lists to prepare for fresh input
+							buyFromlist.removeAll();
+							sellTolist.removeAll();
+							resetTable();
+							
+							//Update the buyFrom and sellTo lists
+							for (String s : exchangeNames)
+							{
+								buyFromlist.add(s);
+							}
 						}
-					}
-				});
+					});
+				}
+				else
+					RavenGUI.log("--COINLIST: Error collecting selection");
 			}
 		 }); //end coinlist Selection event
 	
@@ -627,6 +637,8 @@ class RavenGUI
 			{
 				if (buyFromlist.getSelectionCount() > 0)
 				{
+					resetTable();
+					
 					//Enable sellTolist
 					sellTolist.setEnabled(true);
 					
@@ -1169,6 +1181,8 @@ class RavenGUI
 		final Button recurringUpdatesBut = new Button(setshell, SWT.CHECK);
 		final Button showPopupOnLoadBut = new Button(setshell, SWT.CHECK);
 		final Button showChartLabelsBut = new Button(setshell, SWT.CHECK);
+		final Button showSingularCoinsBut = new Button(setshell, SWT.CHECK);
+		final Button showSingularExchsBut = new Button(setshell, SWT.CHECK);
 		//final Button smartLabelsBut = new Button(setshell, SWT.CHECK);
 		/*
 		 * smartLabels: label format changes to smaller form (#.### -> #.##) as more and more
@@ -1183,12 +1197,15 @@ class RavenGUI
 		Group updateScheduling = new Group(setshell, SWT.SHADOW_NONE);
 		Group popupcheck = new Group(setshell, SWT.SHADOW_NONE);
 		Group chartgroup = new Group(setshell, SWT.SHADOW_NONE);
+		Group coinlistgroup = new Group(setshell, SWT.SHADOW_NONE);
 		
 		//Positioning constants
 		final Rectangle EXCH_GROUP = new Rectangle(10, 10, 255, 200);
-		final Rectangle UPDATE_GROUP = new Rectangle(270, 10, 200, 100);
-		final Rectangle POPUP_GROUP = new Rectangle(270, 110, 200, 50);
-		final Rectangle CHART_GROUP = new Rectangle(270, 160, 200, 50);
+		final Rectangle COINLIST_GROUP = new Rectangle(10, EXCH_GROUP.height + 10, 255, 80);
+		
+		final Rectangle UPDATE_GROUP = new Rectangle(EXCH_GROUP.width + 20/*270*/, 10, 200, 100);
+		final Rectangle POPUP_GROUP = new Rectangle(UPDATE_GROUP.x/*270*/, UPDATE_GROUP.height + 10/*110*/, 200, 50);
+		final Rectangle CHART_GROUP = new Rectangle(UPDATE_GROUP.x, UPDATE_GROUP.height + POPUP_GROUP.height + 10/*160*/, 200, 50);
 		
 		//Sizing and positioning ---------------------------------------------------------
 		setshell.setBounds(x - (RAVEN_SETTINGS_WIDTH / 2) + (RAVEN_MAIN_WIDTH / 2), y - (RAVEN_SETTINGS_HEIGHT / 2) + (RAVEN_MAIN_HEIGHT / 2), RAVEN_SETTINGS_WIDTH, RAVEN_SETTINGS_HEIGHT);
@@ -1201,6 +1218,8 @@ class RavenGUI
 		recurringUpdatesBut.setLocation(280,50);
 		showPopupOnLoadBut.setLocation(POPUP_GROUP.x + 10, POPUP_GROUP.y + 20);
 		showChartLabelsBut.setLocation(CHART_GROUP.x + 10, CHART_GROUP.y + 20);
+		showSingularCoinsBut.setLocation(COINLIST_GROUP.x + 10, COINLIST_GROUP.y + 20);
+		showSingularExchsBut.setLocation(COINLIST_GROUP.x + 10, COINLIST_GROUP.y + 40);
 		
 		//Textboxes
 		recurringUpdatesInterval.setBounds(UPDATE_GROUP.x + 26, UPDATE_GROUP.y + 60, 60, 30);
@@ -1216,6 +1235,7 @@ class RavenGUI
 		updateScheduling.setBounds(UPDATE_GROUP);
 		popupcheck.setBounds(POPUP_GROUP);
 		chartgroup.setBounds(CHART_GROUP);
+		coinlistgroup.setBounds(COINLIST_GROUP);
 		
 		//Information and dialogue -------------------------------------------------------
 		setshell.setText("Settings");
@@ -1241,6 +1261,14 @@ class RavenGUI
 		showChartLabelsBut.pack();
 		showChartLabelsBut.setToolTipText("Show or hide the numbers that rest in the middle of the bars on the chart.");
 		
+		showSingularCoinsBut.setText("Show singular coins");
+		showSingularCoinsBut.pack();
+		showSingularCoinsBut.setToolTipText("When checked, the main coin list will not show coins where only one was found.");
+		
+		showSingularExchsBut.setText("Show singular exchanges");
+		showSingularExchsBut.pack();
+		showSingularExchsBut.setToolTipText("When checked, the main coin list will disallow coins found in only one exchange from being listed.");
+		
 		//Textboxes
 		recurringUpdatesInterval.setFont(new Font(disp, LABELS_FONT, 16, SWT.NONE));
 		
@@ -1252,6 +1280,7 @@ class RavenGUI
 		updateScheduling.setText("Update and Scheduling");
 		popupcheck.setText("Popups and notifications");
 		chartgroup.setText("Chart functions");
+		coinlistgroup.setText("Coin List");
 		
 		//Exchange group processing
 		for (int i = 0; i < masterexchangelist.size(); i++)
@@ -1267,7 +1296,8 @@ class RavenGUI
 		recurringUpdatesInterval.setText(Long.toString(scheduledUpdateInterval));
 		showPopupOnLoadBut.setSelection(runPopupOnLoad);
 		showChartLabelsBut.setSelection(displayChartLabel);
-		
+		showSingularCoinsBut.setSelection(showSingularCoins);
+		showSingularExchsBut.setSelection(showSingularExchs);
 		
 		//Event handlers -----------------------------------------------------------------
 		checkall.addListener(SWT.MouseDown, new Listener () //------------------------
@@ -1309,15 +1339,28 @@ class RavenGUI
 					scheduleUpdates = recurringUpdatesBut.getSelection();
 					scheduledUpdateInterval = Long.parseLong(recurringUpdatesInterval.getText());
 					runPopupOnLoad = showPopupOnLoadBut.getSelection();
+					showSingularCoins = showSingularCoinsBut.getSelection();
+					showSingularExchs = showSingularExchsBut.getSelection();
 					
 					displayChartLabel = showChartLabelsBut.getSelection();
 					if (mainchart.getSeriesSet().getSeries().length > 0)
 							mainchart.getSeriesSet().getSeries("Coin").getLabel().setVisible(displayChartLabel);
 					mainchart.redraw();
 					
-					commitUpdatesBut.setText("Commit each update to CSV");
-					commitUpdatesBut.pack();
-					saveUserSettings(setshell, exchChecklist);
+					//Update the coin list
+					if (common != null)
+					{
+						coinnames = common.getCoinNames();
+						commonsizes = common.commonSizes();
+						exchcount = common.getAllUniqueExchCount();
+						coinlist.removeAll();
+						updateCoinList(coinnames, commonsizes, exchcount);
+						
+					}
+						commitUpdatesBut.setText("Commit each update to CSV");
+						commitUpdatesBut.pack();
+						saveUserSettings(setshell, exchChecklist);
+					
 					
 				}
 				catch (NumberFormatException nfe)
@@ -1433,10 +1476,35 @@ class RavenGUI
 	
 	private void updateCoinList(String [] coins, int [] numcoins, int [] numexchs)
 	{
+		
 		for (int i = 0; i < coins.length; i++)
 		{
-			coinlist.add(coins[i] + " (" + numcoins[i] + "," + numexchs[i] + ")");
-		}
+			if (showSingularCoins && showSingularExchs)
+			{
+				coinlist.add(coins[i] + " (" + numcoins[i] + "," + numexchs[i] + ")");
+			}
+			else if (showSingularCoins && !showSingularExchs)
+			{
+				if (numexchs[i] > 1)
+					coinlist.add(coins[i] + " (" + numcoins[i] + "," + numexchs[i] + ")");
+			}
+			else if (!showSingularCoins && showSingularExchs)
+			{
+				if (numcoins[i] > 1)
+					coinlist.add(coins[i] + " (" + numcoins[i] + "," + numexchs[i] + ")");
+			}
+			else if (!showSingularCoins && !showSingularExchs)
+			{
+				if (numcoins[i] > 1 && numexchs[i] > 1)
+					coinlist.add(coins[i] + " (" + numcoins[i] + "," + numexchs[i] + ")");
+			}
+			
+			/*if (showSingularCoins)
+				coinlist.add(coins[i] + " (" + numcoins[i] + "," + numexchs[i] + ")");
+			else
+				if (numcoins[i] > 1)
+					coinlist.add(coins[i] + " (" + numcoins[i] + "," + numexchs[i] + ")");*/
+		}	
 	}
 	
 	/* ******************************************************************************************************* *
@@ -1638,17 +1706,26 @@ class RavenGUI
 				pw.println("# INTERVAL_UPDATE_TIME controls the amount of time Raven waits to update (in minutes, integer values (> 0) only)");
 				pw.println("#");
 				pw.println("# RUN_POPUP_ONLOAD controls if the Raven info popup displays when Raven is launched");
+				pw.println("#");
+				pw.println("# CHART_LABEL controls if the chart displays numbers that rest on the bars");
+				pw.println("#");
+				pw.println("# SHOW_SINGULAR_COINS controls if coins of only one occurence are listed in the main coin list");
+				pw.println("# SHOW_SINGULAR_EXCHANGES controls if coins will be displayed if they are only listed in one exchange");
 				pw.println("UPDATE_COMMIT:false");
 				pw.println("INTERVAL_UPDATE:false");
 				pw.println("INTERVAL_UPDATE_TIME:5");
 				pw.println("RUN_POPUP_ONLOAD:true");
 				pw.println("CHART_LABEL:true");
+				pw.println("SHOW_SINGULAR_COINS:false");
+				pw.println("SHOW_SINGULAR_EXCHANGES:false");
 				
 				//Reset settings currently in memory
 				commitUpdates = false;
 				scheduleUpdates = false;
 				scheduledUpdateInterval = 5;
 				updateTimer = null;
+				displayChartLabel = true;
+				showSingularCoins = false;
 			}
 			catch (IOException e){e.printStackTrace();}
 			finally
@@ -1882,8 +1959,36 @@ class RavenGUI
 				log(SETTINGS_PRE + " CHART_LABEL " + SETTINGS_MISSING);
 				displayChartLabel = true;
 			}
-				
 			
+			if (userSettings.containsKey("SHOW_SINGULAR_COINS"))
+			{
+				try {showSingularCoins = (userSettings.get("SHOW_SINGULAR_COINS").toString().equalsIgnoreCase("true")) ? true : false;}
+				catch (NullPointerException npe)
+				{
+					log("SETTINGS: Error loading SHOW_SINGULAR_COINS, using default (false)");
+					showSingularCoins = false;
+				}
+			}
+			else
+			{
+				log(SETTINGS_PRE + " SHOW_SINGULAR_COINS " + SETTINGS_MISSING);
+				showSingularCoins = false;
+			}
+				
+			if (userSettings.containsKey("SHOW_SINGULAR_EXCHANGES"))
+			{
+				try {showSingularExchs = (userSettings.get("SHOW_SINGULAR_EXCHANGES").toString().equalsIgnoreCase("true")) ? true : false;}
+				catch (NullPointerException npe)
+				{
+					log("SETTINGS: Error loading SHOW_SINGULAR_EXCHANGES, using default (false)");
+					showSingularExchs = false;
+				}
+			}
+			else
+			{
+				log(SETTINGS_PRE + " SHOW_SINGULAR_EXCHANGES " + SETTINGS_MISSING);
+				showSingularExchs = false;
+			}
 			
 			//Other settings
 		}
@@ -2041,7 +2146,8 @@ class RavenGUI
 			pw.println("INTERVAL_UPDATE_TIME:" + Long.toString(scheduledUpdateInterval));
 			pw.println("RUN_POPUP_ONLOAD:" + Boolean.toString(runPopupOnLoad));
 			pw.println("CHART_LABEL:" + Boolean.toString(displayChartLabel));
-			
+			pw.println("SHOW_SINGULAR_COINS:" + Boolean.toString(showSingularCoins));
+			pw.println("SHOW_SINGULAR_EXCHANGES:" + Boolean.toString(showSingularExchs));
 		}
 		catch (IOException e1)
 		{
@@ -2243,7 +2349,8 @@ class RavenGUI
 			for (int i = 0; i < exchangeNames.size(); i++)
 				exchcount.put(exchangeNames.get(i), 0);
 			
-			java.util.List<Coin> coins = common.getCommonCoinRow(sel);
+			String select = coinlist.getItem(sel);
+			java.util.List<Coin> coins = common.getCommonCoinRow(select.substring(0, select.indexOf(" (")));
 			
 			for (int coin = 0; coin < coins.size(); coin++)
 				exchcount.put(coins.get(coin).getExchange(), exchcount.get(coins.get(coin).getExchange()) + 1);
@@ -2274,8 +2381,10 @@ class RavenGUI
 			String [] names = exchangeNames.toArray(new String[exchangeNames.size()]);
 			
 			//Angle x axis text if necessary
-			if (names.length > 6)
-				xAxis.getTick().setTickLabelAngle(60);
+			if (names.length > 9)
+				xAxis.getTick().setTickLabelAngle(30);
+			else if (names.length > 7)
+				xAxis.getTick().setTickLabelAngle(25);
 			else
 				xAxis.getTick().setTickLabelAngle(0);
 			
@@ -2318,7 +2427,9 @@ class RavenGUI
 			//Set up working lists for buy info and coin codes (for labeling)
 			java.util.List<Double> nums = new ArrayList<Double>();
 			java.util.List<String> codes = new ArrayList<String>();
-			java.util.List<Coin> coins = common.getCommonCoinRow(sel);
+			
+			String select = coinlist.getItem(sel);
+			java.util.List<Coin> coins = common.getCommonCoinRow(select.substring(0, select.indexOf(" (")));
 			
 			for (int coin = 0; coin < coins.size(); coin++)
 			{
@@ -2366,8 +2477,10 @@ class RavenGUI
 			String [] names = codes.toArray(new String[codes.size()]);
 			
 			//Angle x axis text if necessary
-			if (names.length > 6)
-				xAxis.getTick().setTickLabelAngle(60);
+			if (names.length > 9)
+				xAxis.getTick().setTickLabelAngle(30);
+			else if (names.length > 7)
+				xAxis.getTick().setTickLabelAngle(25);
 			else
 				xAxis.getTick().setTickLabelAngle(0);
 			
