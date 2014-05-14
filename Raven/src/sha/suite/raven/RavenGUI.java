@@ -213,8 +213,8 @@ class RavenGUI
 	boolean displayChartLabel = true;
 	
 	//Coin list options
-	boolean showSingularCoins = false;
-	boolean showSingularExchs = false;
+	boolean hideSingularCoins = false;
+	boolean hideSingularExchs = false;
 	
 	//config.txt and exchanges.txt filepaths
 	final String EXCHANGE_FILE_PATH = "exchanges.txt";
@@ -1176,13 +1176,14 @@ class RavenGUI
 		
 		Button checkall = new Button(setshell, SWT.PUSH);
 		Button uncheckall = new Button(setshell, SWT.PUSH);
+		Button checkdefaults = new Button(setshell, SWT.PUSH);
 		Button savebut = new Button(setshell, SWT.PUSH);
 		final Button commitUpdatesBut = new Button(setshell, SWT.CHECK);
 		final Button recurringUpdatesBut = new Button(setshell, SWT.CHECK);
 		final Button showPopupOnLoadBut = new Button(setshell, SWT.CHECK);
 		final Button showChartLabelsBut = new Button(setshell, SWT.CHECK);
-		final Button showSingularCoinsBut = new Button(setshell, SWT.CHECK);
-		final Button showSingularExchsBut = new Button(setshell, SWT.CHECK);
+		final Button hideSingularCoinsBut = new Button(setshell, SWT.CHECK);
+		final Button hideSingularExchsBut = new Button(setshell, SWT.CHECK);
 		//final Button smartLabelsBut = new Button(setshell, SWT.CHECK);
 		/*
 		 * smartLabels: label format changes to smaller form (#.### -> #.##) as more and more
@@ -1214,12 +1215,13 @@ class RavenGUI
 		savebut.setBounds(RAVEN_SETTINGS_WIDTH - 150, RAVEN_SETTINGS_HEIGHT - 80, 120, 30);
 		checkall.setBounds(EXCH_GROUP.x + 170, EXCH_GROUP.y + 20, 75, 50);
 		uncheckall.setBounds(EXCH_GROUP.x + 170, EXCH_GROUP.y + 80, 75, 50);
+		checkdefaults.setBounds(EXCH_GROUP.x + 170, EXCH_GROUP.y + 140, 75, 50);
 		commitUpdatesBut.setLocation(280,30);
 		recurringUpdatesBut.setLocation(280,50);
 		showPopupOnLoadBut.setLocation(POPUP_GROUP.x + 10, POPUP_GROUP.y + 20);
 		showChartLabelsBut.setLocation(CHART_GROUP.x + 10, CHART_GROUP.y + 20);
-		showSingularCoinsBut.setLocation(COINLIST_GROUP.x + 10, COINLIST_GROUP.y + 20);
-		showSingularExchsBut.setLocation(COINLIST_GROUP.x + 10, COINLIST_GROUP.y + 40);
+		hideSingularCoinsBut.setLocation(COINLIST_GROUP.x + 10, COINLIST_GROUP.y + 20);
+		hideSingularExchsBut.setLocation(COINLIST_GROUP.x + 10, COINLIST_GROUP.y + 40);
 		
 		//Textboxes
 		recurringUpdatesInterval.setBounds(UPDATE_GROUP.x + 26, UPDATE_GROUP.y + 60, 60, 30);
@@ -1244,6 +1246,7 @@ class RavenGUI
 		savebut.setText("Save");
 		checkall.setText("Select all");
 		uncheckall.setText("Deselect all");
+		checkdefaults.setText("Defaults");
 		
 		commitUpdatesBut.setText("Commit each update to CSV");
 		commitUpdatesBut.pack();
@@ -1261,13 +1264,13 @@ class RavenGUI
 		showChartLabelsBut.pack();
 		showChartLabelsBut.setToolTipText("Show or hide the numbers that rest in the middle of the bars on the chart.");
 		
-		showSingularCoinsBut.setText("Show singular coins");
-		showSingularCoinsBut.pack();
-		showSingularCoinsBut.setToolTipText("When checked, the main coin list will not show coins where only one was found.");
+		hideSingularCoinsBut.setText("Hide singular coins");
+		hideSingularCoinsBut.pack();
+		hideSingularCoinsBut.setToolTipText("When checked, the main coin list will not show coins where only one was found.");
 		
-		showSingularExchsBut.setText("Show singular exchanges");
-		showSingularExchsBut.pack();
-		showSingularExchsBut.setToolTipText("When checked, the main coin list will disallow coins found in only one exchange from being listed.");
+		hideSingularExchsBut.setText("Hide singular exchanges");
+		hideSingularExchsBut.pack();
+		hideSingularExchsBut.setToolTipText("When checked, the main coin list will disallow coins found in only one exchange from being listed.");
 		
 		//Textboxes
 		recurringUpdatesInterval.setFont(new Font(disp, LABELS_FONT, 16, SWT.NONE));
@@ -1296,8 +1299,8 @@ class RavenGUI
 		recurringUpdatesInterval.setText(Long.toString(scheduledUpdateInterval));
 		showPopupOnLoadBut.setSelection(runPopupOnLoad);
 		showChartLabelsBut.setSelection(displayChartLabel);
-		showSingularCoinsBut.setSelection(showSingularCoins);
-		showSingularExchsBut.setSelection(showSingularExchs);
+		hideSingularCoinsBut.setSelection(hideSingularCoins);
+		hideSingularExchsBut.setSelection(hideSingularExchs);
 		
 		//Event handlers -----------------------------------------------------------------
 		checkall.addListener(SWT.MouseDown, new Listener () //------------------------
@@ -1328,6 +1331,43 @@ class RavenGUI
 			}
 		});
 		
+		checkdefaults.addListener(SWT.MouseDown, new Listener ()
+		{
+			@Override
+			public void handleEvent(Event e)
+			{
+				//Check default items in exchChecklist
+				TableItem [] t = exchChecklist.getItems();
+				boolean [] bools = {false, //atomic trade
+						true, //bitfinex
+						true, //bitkonan
+						true, //bitstamp
+						true, //bittrex
+						false, //btc-e
+						true, //bter
+						false, //crypto-trade
+						false, //cryptonit
+						true, //cryptsy
+						true, //comkort
+						false, //coinedup
+						true, //coinex
+						false, //coins-e
+						true, //fxbtc
+						true, //kraken
+						false, //mcxnow
+						true, //mintpal
+						false, //okcoin
+						true, //prelude
+						true, //poloniex
+						true, //the rock trading
+						true}; //vircurex
+				
+				for (int i = 0; i < t.length; i++)
+					t[i].setChecked(bools[i]);
+				
+			}
+		});
+		
 		savebut.addListener(SWT.MouseDown, new Listener() //------------------------
 		{
 			@Override
@@ -1339,8 +1379,8 @@ class RavenGUI
 					scheduleUpdates = recurringUpdatesBut.getSelection();
 					scheduledUpdateInterval = Long.parseLong(recurringUpdatesInterval.getText());
 					runPopupOnLoad = showPopupOnLoadBut.getSelection();
-					showSingularCoins = showSingularCoinsBut.getSelection();
-					showSingularExchs = showSingularExchsBut.getSelection();
+					hideSingularCoins = hideSingularCoinsBut.getSelection();
+					hideSingularExchs = hideSingularExchsBut.getSelection();
 					
 					displayChartLabel = showChartLabelsBut.getSelection();
 					if (mainchart.getSeriesSet().getSeries().length > 0)
@@ -1479,27 +1519,27 @@ class RavenGUI
 		
 		for (int i = 0; i < coins.length; i++)
 		{
-			if (showSingularCoins && showSingularExchs)
+			if (!hideSingularCoins && !hideSingularExchs)
 			{
 				coinlist.add(coins[i] + " (" + numcoins[i] + "," + numexchs[i] + ")");
 			}
-			else if (showSingularCoins && !showSingularExchs)
+			else if (!hideSingularCoins && hideSingularExchs)
 			{
 				if (numexchs[i] > 1)
 					coinlist.add(coins[i] + " (" + numcoins[i] + "," + numexchs[i] + ")");
 			}
-			else if (!showSingularCoins && showSingularExchs)
+			else if (hideSingularCoins && !hideSingularExchs)
 			{
 				if (numcoins[i] > 1)
 					coinlist.add(coins[i] + " (" + numcoins[i] + "," + numexchs[i] + ")");
 			}
-			else if (!showSingularCoins && !showSingularExchs)
+			else if (hideSingularCoins && hideSingularExchs)
 			{
 				if (numcoins[i] > 1 && numexchs[i] > 1)
 					coinlist.add(coins[i] + " (" + numcoins[i] + "," + numexchs[i] + ")");
 			}
 			
-			/*if (showSingularCoins)
+			/*if (hideSingularCoins)
 				coinlist.add(coins[i] + " (" + numcoins[i] + "," + numexchs[i] + ")");
 			else
 				if (numcoins[i] > 1)
@@ -1709,15 +1749,15 @@ class RavenGUI
 				pw.println("#");
 				pw.println("# CHART_LABEL controls if the chart displays numbers that rest on the bars");
 				pw.println("#");
-				pw.println("# SHOW_SINGULAR_COINS controls if coins of only one occurence are listed in the main coin list");
-				pw.println("# SHOW_SINGULAR_EXCHANGES controls if coins will be displayed if they are only listed in one exchange");
+				pw.println("# HIDE_SINGULAR_COINS controls if coins of only one occurence are listed in the main coin list");
+				pw.println("# HIDE_SINGULAR_EXCHANGES controls if coins will be displayed if they are only listed in one exchange");
 				pw.println("UPDATE_COMMIT:false");
 				pw.println("INTERVAL_UPDATE:false");
 				pw.println("INTERVAL_UPDATE_TIME:5");
 				pw.println("RUN_POPUP_ONLOAD:true");
 				pw.println("CHART_LABEL:true");
-				pw.println("SHOW_SINGULAR_COINS:false");
-				pw.println("SHOW_SINGULAR_EXCHANGES:false");
+				pw.println("HIDE_SINGULAR_COINS:true");
+				pw.println("HIDE_SINGULAR_EXCHANGES:true");
 				
 				//Reset settings currently in memory
 				commitUpdates = false;
@@ -1725,7 +1765,8 @@ class RavenGUI
 				scheduledUpdateInterval = 5;
 				updateTimer = null;
 				displayChartLabel = true;
-				showSingularCoins = false;
+				hideSingularCoins = true;
+				hideSingularExchs = true;
 			}
 			catch (IOException e){e.printStackTrace();}
 			finally
@@ -1960,34 +2001,34 @@ class RavenGUI
 				displayChartLabel = true;
 			}
 			
-			if (userSettings.containsKey("SHOW_SINGULAR_COINS"))
+			if (userSettings.containsKey("HIDE_SINGULAR_COINS"))
 			{
-				try {showSingularCoins = (userSettings.get("SHOW_SINGULAR_COINS").toString().equalsIgnoreCase("true")) ? true : false;}
+				try {hideSingularCoins = (userSettings.get("HIDE_SINGULAR_COINS").toString().equalsIgnoreCase("true")) ? true : false;}
 				catch (NullPointerException npe)
 				{
-					log("SETTINGS: Error loading SHOW_SINGULAR_COINS, using default (false)");
-					showSingularCoins = false;
+					log("SETTINGS: Error loading HIDE_SINGULAR_COINS, using default (true)");
+					hideSingularCoins = true;
 				}
 			}
 			else
 			{
-				log(SETTINGS_PRE + " SHOW_SINGULAR_COINS " + SETTINGS_MISSING);
-				showSingularCoins = false;
+				log(SETTINGS_PRE + " HIDE_SINGULAR_COINS " + SETTINGS_MISSING);
+				hideSingularCoins = true;
 			}
 				
-			if (userSettings.containsKey("SHOW_SINGULAR_EXCHANGES"))
+			if (userSettings.containsKey("HIDE_SINGULAR_EXCHANGES"))
 			{
-				try {showSingularExchs = (userSettings.get("SHOW_SINGULAR_EXCHANGES").toString().equalsIgnoreCase("true")) ? true : false;}
+				try {hideSingularExchs = (userSettings.get("HIDE_SINGULAR_EXCHANGES").toString().equalsIgnoreCase("true")) ? true : false;}
 				catch (NullPointerException npe)
 				{
-					log("SETTINGS: Error loading SHOW_SINGULAR_EXCHANGES, using default (false)");
-					showSingularExchs = false;
+					log("SETTINGS: Error loading HIDE_SINGULAR_EXCHANGES, using default (true)");
+					hideSingularExchs = true;
 				}
 			}
 			else
 			{
-				log(SETTINGS_PRE + " SHOW_SINGULAR_EXCHANGES " + SETTINGS_MISSING);
-				showSingularExchs = false;
+				log(SETTINGS_PRE + " HIDE_SINGULAR_EXCHANGES " + SETTINGS_MISSING);
+				hideSingularExchs = true;
 			}
 			
 			//Other settings
@@ -2146,8 +2187,8 @@ class RavenGUI
 			pw.println("INTERVAL_UPDATE_TIME:" + Long.toString(scheduledUpdateInterval));
 			pw.println("RUN_POPUP_ONLOAD:" + Boolean.toString(runPopupOnLoad));
 			pw.println("CHART_LABEL:" + Boolean.toString(displayChartLabel));
-			pw.println("SHOW_SINGULAR_COINS:" + Boolean.toString(showSingularCoins));
-			pw.println("SHOW_SINGULAR_EXCHANGES:" + Boolean.toString(showSingularExchs));
+			pw.println("HIDE_SINGULAR_COINS:" + Boolean.toString(hideSingularCoins));
+			pw.println("HIDE_SINGULAR_EXCHANGES:" + Boolean.toString(hideSingularExchs));
 		}
 		catch (IOException e1)
 		{

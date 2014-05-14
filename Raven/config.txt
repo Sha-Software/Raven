@@ -15,12 +15,12 @@
 #
 # CHART_LABEL controls if the chart displays numbers that rest on the bars
 #
-# SHOW_SINGULAR_COINS controls if coins of only one occurence are listed in the main coin list
-# SHOW_SINGULAR_EXCHANGES controls if coins will be displayed if they are only listed in one exchange
+# HIDE_SINGULAR_COINS controls if coins of only one occurence are listed in the main coin list
+# HIDE_SINGULAR_EXCHANGES controls if coins will be displayed if they are only listed in one exchange
 UPDATE_COMMIT:false
 INTERVAL_UPDATE:false
 INTERVAL_UPDATE_TIME:5
 RUN_POPUP_ONLOAD:true
 CHART_LABEL:true
-SHOW_SINGULAR_COINS:false
-SHOW_SINGULAR_EXCHANGES:false
+HIDE_SINGULAR_COINS:true
+HIDE_SINGULAR_EXCHANGES:true

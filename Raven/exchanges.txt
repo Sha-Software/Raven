@@ -22,7 +22,7 @@ bter,T
 crypto-trade,F
 cryptonit,F
 cryptsy,T
-comkort,F
+comkort,T
 coinedup,F
 coinex,T
 coins-e,F
